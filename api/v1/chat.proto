@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package api.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Message format sent in chat
+message ChatMessage {
+  string conversation_id = 1;
+  string sender_id = 2;
+  string content = 3;
+  google.protobuf.Timestamp sent_at = 4;
+}
+
+// Send a new message to a conversaiton
+message SendMessageRequest {
+  string conversation_id = 1;
+  string sender_id = 2;
+  string content = 3;
+}
+
+message SendMessageResponse {
+  bool success = 1;
+  ChatMessage message = 2;
+}
+
+message GetChatHistoryRequest {
+  string coversation_id = 1;
+  int32 limit = 2;
+  int32 offset 3;
+}
+
+message GetChatHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+service ChatService {
+  rpc StreamMessages(stream ChatMessage) returns (stream ChatMessage);
+  rpc SendMessages(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse)
+}
