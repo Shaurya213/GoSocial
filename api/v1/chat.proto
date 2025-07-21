@@ -2,8 +2,9 @@ syntax = "proto3";
 
 package api.v1;
 
-import "google/protobuf/timestamp.proto";
+option go_package = "./api/v1/chat";
 
+import "google/protobuf/timestamp.proto";
 // Message format sent in chat
 message ChatMessage {
   string conversation_id = 1;
@@ -27,7 +28,7 @@ message SendMessageResponse {
 message GetChatHistoryRequest {
   string coversation_id = 1;
   int32 limit = 2;
-  int32 offset 3;
+  int32 offset = 3;
 }
 
 message GetChatHistoryResponse {
@@ -37,5 +38,5 @@ message GetChatHistoryResponse {
 service ChatService {
   rpc StreamMessages(stream ChatMessage) returns (stream ChatMessage);
   rpc SendMessages(SendMessageRequest) returns (SendMessageResponse);
-  rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse)
+  rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse);
 }
