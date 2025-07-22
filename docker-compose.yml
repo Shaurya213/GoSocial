@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # MongoDB for local development
+  mongodb:
+    image: mongo:7.0
+    container_name: gosocial_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: gosocial
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - gosocial_network
+
+  # MongoDB Web UI - FIXED BOOLEAN VALUES
+  mongo-express:
+    image: mongo-express:latest
+    container_name: gosocial_mongo_express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"     # ✅ Quoted as string
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin123
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    depends_on:
+      - mongodb
+    networks:
+      - gosocial_network
+
+  # MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: gosocial_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: gosocial
+      MYSQL_USER: gosocial
+      MYSQL_PASSWORD: gosocial123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - gosocial_network
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+  mysql_data:
+    driver: local
+
+networks:
+  gosocial_network:
+    driver: bridge
+

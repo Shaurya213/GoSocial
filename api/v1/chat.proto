@@ -26,7 +26,7 @@ message SendMessageResponse {
 }
 
 message GetChatHistoryRequest {
-  string coversation_id = 1;
+  string conversation_id = 1;
   int32 limit = 2;
   int32 offset = 3;
 }

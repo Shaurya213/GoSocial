@@ -205,12 +205,12 @@ func (x *SendMessageResponse) GetMessage() *ChatMessage {
 }
 
 type GetChatHistoryRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CoversationId string                 `protobuf:"bytes,1,opt,name=coversation_id,json=coversationId,proto3" json:"coversation_id,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	Limit          int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset         int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetChatHistoryRequest) Reset() {
@@ -243,9 +243,9 @@ func (*GetChatHistoryRequest) Descriptor() ([]byte, []int) {
 	return file_api_v1_chat_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *GetChatHistoryRequest) GetCoversationId() string {
+func (x *GetChatHistoryRequest) GetConversationId() string {
 	if x != nil {
-		return x.CoversationId
+		return x.ConversationId
 	}
 	return ""
 }
@@ -324,9 +324,9 @@ const file_api_v1_chat_proto_rawDesc = "" +
 	"\acontent\x18\x03 \x01(\tR\acontent\"^\n" +
 	"\x13SendMessageResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12-\n" +
-	"\amessage\x18\x02 \x01(\v2\x13.api.v1.ChatMessageR\amessage\"l\n" +
-	"\x15GetChatHistoryRequest\x12%\n" +
-	"\x0ecoversation_id\x18\x01 \x01(\tR\rcoversationId\x12\x14\n" +
+	"\amessage\x18\x02 \x01(\v2\x13.api.v1.ChatMessageR\amessage\"n\n" +
+	"\x15GetChatHistoryRequest\x12'\n" +
+	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x03 \x01(\x05R\x06offset\"I\n" +
 	"\x16GetChatHistoryResponse\x12/\n" +
