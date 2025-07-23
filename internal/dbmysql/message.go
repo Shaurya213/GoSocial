@@ -14,3 +14,7 @@ type Message struct {
 	SentAt         time.Time
 	gorm.Model
 }
+
+func (Message) TableName() string {
+	return "messages"
+}

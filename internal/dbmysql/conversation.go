@@ -9,3 +9,7 @@ type Conversation struct {
 	ParticipantsIDs string `gorm:"type:json"`
 	gorm.Model
 }
+
+func (Conversation) TableName() string {
+	return "conversation"
+}
