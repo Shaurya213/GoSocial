@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package api.v1;
+
+option go_package = "/feed;apiv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+// ----- Service -----
+
+service FeedService {
+  rpc CreateContent(CreateContentRequest) returns (ContentResponse);
+  rpc GetContentByID(GetContentRequest) returns (ContentResponse);
+  rpc DeleteContent(DeleteContentRequest) returns (DeleteContentResponse);
+  rpc ListUserContent(ListUserContentRequest) returns (ListUserContentResponse);
+}
+
+// ----- Messages -----
+
+message Content {
+  int64 content_id = 1;
+  int64 author_id = 2;
+  string type = 3; // "POST", "STORY", "REEL"
+  google.protobuf.StringValue text_content = 4;
+  google.protobuf.Int64Value media_ref_id = 5;
+  string privacy = 6; // "public", "friends", "private"
+  google.protobuf.Timestamp expiration = 7;
+  google.protobuf.Int32Value duration = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// ----- Requests and Responses -----
+
+message CreateContentRequest {
+  int64 author_id = 1;
+  string type = 2;
+  google.protobuf.StringValue text_content = 3;
+  google.protobuf.Int64Value media_ref_id = 4;
+  string privacy = 5;
+  google.protobuf.Timestamp expiration = 6;
+  google.protobuf.Int32Value duration = 7;
+}
+
+message ContentResponse {
+  Content content = 1;
+}
+
+message GetContentRequest {
+  int64 content_id = 1;
+}
+
+message DeleteContentRequest {
+  int64 content_id = 1;
+}
+
+message DeleteContentResponse {
+  bool success = 1;
+}
+
+message ListUserContentRequest {
+  int64 user_id = 1;
+}
+
+message ListUserContentResponse {
+  repeated Content contents = 1;
+}
