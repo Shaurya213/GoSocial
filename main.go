@@ -1,96 +1,83 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"io"
-	"log"
-	"os"
-	"strings"
-	"time"
+    "bufio"
+    "context"
+    "fmt"
+    "io"
+    "log"
+    "mime"
+    "os"
+    "path/filepath"
+    "strings"
 
-	"gosocial/internal/config"
-	"gosocial/internal/dbmongo"
-)
-
-// simple coloured output (TUI-ish without extra libs)
-const (
-	green = "\033[32m"
-	cyan  = "\033[36m"
-	reset = "\033[0m"
+    "gosocial/internal/config"
+    "gosocial/internal/dbmongo"
 )
 
 func main() {
-	// -------- 1. CONFIG & CONNECTION ---------------------------------
-	cfg := config.LoadConfig()
-	mc, err := dbmongo.NewMongoConnection(cfg)
-	must(err)
-	defer mc.Close(context.Background())
+    // Setup
+    cfg := config.LoadConfig()
+    mc, err := dbmongo.NewMongoConnection(cfg)
+    if err != nil {
+        log.Fatal("Connection failed:", err)
+    }
+    defer mc.Close(context.Background())
 
-	// create storage helper with base URL (optional)
-	baseURL := "http://localhost:8080/media"
-	storage := dbmongo.NewMediaStorage(mc, baseURL)
+    storage := dbmongo.NewMediaStorage(mc)
+    
+    // Simple input choice
+    reader := bufio.NewReader(os.Stdin)
+    fmt.Print("Upload or Download? (u/d): ")
+    choice, _ := reader.ReadString('\n')
+    choice = strings.TrimSpace(strings.ToLower(choice))
 
-	// -------- 2. PICK A REAL FILE -----------------------------------
-	const localFile = "sample.jpg" // change if needed
-	f, err := os.Open(localFile)
-	must(err)
-	defer f.Close()
+    if choice == "u" {
+        // UPLOAD PATH
+        fmt.Print("Enter filename: ")
+        filename, _ := reader.ReadString('\n')
+        filename = strings.TrimSpace(filename)
+        
+        file, err := os.Open(filename)
+        if err != nil {
+            log.Fatal("File not found:", err)
+        }
+        defer file.Close()
 
-	stat, _ := f.Stat()
-	display(fmt.Sprintf("Uploading %s (%d bytes)…", stat.Name(), stat.Size()), cyan)
+        stat, _ := file.Stat()
+        contentType := mime.TypeByExtension(filepath.Ext(filename))
+        
+        uploaded, err := storage.UploadFile(context.Background(), stat.Name(), contentType, "user123", file)
+        if err != nil {
+            log.Fatal("Upload failed:", err)
+        }
 
-	// -------- 3. UPLOAD TO GRIDFS -----------------------------------
-	uploaded, err := storage.UploadMediaWithMetadata(
-		context.Background(),
-		stat.Name(),
-		detectMIME(stat.Name()),
-		"cli-tester", // uploaderID for demo
-		f,
-	)
-	must(err)
-	display("✔ uploaded", green)
+        fmt.Printf("✅ Uploaded! ID: %s\n", uploaded.ID)
+        
+    } else if choice == "d" {
+        // DOWNLOAD PATH
+        fmt.Print("Enter file ID: ")
+        fileID, _ := reader.ReadString('\n')
+        fileID = strings.TrimSpace(fileID)
+        
+        reader_stream, fileInfo, err := storage.DownloadFile(context.Background(), fileID)
+        if err != nil {
+            log.Fatal("Download failed:", err)
+        }
 
-	// -------- 4. DOWNLOAD IT BACK -----------------------------------
-	r, meta, err := storage.DownloadMediaWithInfo(context.Background(), uploaded.ID)
-	must(err)
+        // Save with ID as filename
+        outputFile := fmt.Sprintf("%s%s", fileID, filepath.Ext(fileInfo.Filename))
+        file, err := os.Create(outputFile)
+        if err != nil {
+            log.Fatal("Create failed:", err)
+        }
+        defer file.Close()
 
-	buf := make([]byte, 40)               // preview first 40 bytes
-	n, _ := io.ReadFull(r, buf[:])
-	preview := fmt.Sprintf("% x", buf[:n]) // hex view
-
-	// -------- 5. MINIMAL TUI OUTPUT ---------------------------------
-	fmt.Println(strings.Repeat("─", 58))
-	fmt.Printf("%sFile:%s   %s\n", cyan, reset, meta.Filename)
-	fmt.Printf("%sSize:%s   %d bytes\n", cyan, reset, meta.Size)
-	fmt.Printf("%sGridFS ID:%s %s\n", cyan, reset, meta.ID)
-	fmt.Printf("%sURL:%s    %s\n", cyan, reset, meta.URL)
-	fmt.Printf("%sPreview:%s %s …\n", cyan, reset, preview)
-	fmt.Println(strings.Repeat("─", 58))
-}
-
-// detectMIME – very small helper; real code may use mime.TypeByExtension
-func detectMIME(name string) string {
-	switch {
-	case strings.HasSuffix(name, ".jpg"), strings.HasSuffix(name, ".jpeg"):
-		return "image/jpeg"
-	case strings.HasSuffix(name, ".png"):
-		return "image/png"
-	case strings.HasSuffix(name, ".mp4"):
-		return "video/mp4"
-	default:
-		return "application/octet-stream"
-	}
-}
-
-func must(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-// tiny helper for coloured log
-func display(msg, colour string) {
-	fmt.Printf("%s%s%s  %s\n", colour, time.Now().Format("15:04:05"), reset, msg)
+        io.Copy(file, reader_stream)
+        fmt.Printf("✅ Downloaded as: %s\n", outputFile)
+        
+    } else {
+        fmt.Println("Invalid choice")
+    }
 }
 
