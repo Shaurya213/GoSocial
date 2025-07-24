@@ -7,13 +7,19 @@ import (
 	"GoSocial/internal/dbmysql"
 )
 
-// type FeedService struct {
-// 	repo *FeedRepository
-// }
+type FeedUsecase interface {
+	CreateContent(ctx context.Context, content *dbmysql.Content) (int64, error)
+	GetContent(ctx context.Context, id int64) (*dbmysql.Content, error)
+	ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error)
+	DeleteContent(ctx context.Context, id int64) error
 
-// func NewFeedService(repo *FeedRepository) *FeedService {
-// 	return &FeedService{repo: repo}
-// }
+	CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef) (int64, error)
+	GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
+
+	AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error
+	GetReactions(ctx context.Context, contentID int64) ([]dbmysql.Reaction, error)
+	DeleteReaction(ctx context.Context, userID, contentID int64) error
+}
 
 type FeedService struct {
 	contentRepo  Content
