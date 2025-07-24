@@ -14,9 +14,13 @@ func NewFeedRepository(db *gorm.DB) *FeedRepository {
 	return &FeedRepository{db: db}
 }
 
-//
 // --------- CONTENT ---------
-//
+type Content interface {
+	CreateContent(ctx context.Context, content *dbmysql.Content) error
+	GetContentByID(ctx context.Context, id int64) (*dbmysql.Content, error)
+	ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error)
+	DeleteContent(ctx context.Context, id int64) error
+}
 
 func (r *FeedRepository) CreateContent(ctx context.Context, content *dbmysql.Content) error {
 	return r.db.WithContext(ctx).Create(content).Error
@@ -41,9 +45,11 @@ func (r *FeedRepository) DeleteContent(ctx context.Context, id int64) error {
 	return r.db.WithContext(ctx).Delete(&dbmysql.Content{}, "content_id = ?", id).Error
 }
 
-//
 // --------- MEDIA REF ---------
-//
+type MediaRef interface {
+	CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef) error
+	GetMediaRefByID(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
+}
 
 func (r *FeedRepository) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef) error {
 	return r.db.WithContext(ctx).Create(media).Error
@@ -55,9 +61,12 @@ func (r *FeedRepository) GetMediaRefByID(ctx context.Context, id int64) (*dbmysq
 	return &media, err
 }
 
-//
 // --------- REACTIONS ---------
-//
+type Reactions interface {
+	AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error
+	GetReactionsForContent(ctx context.Context, contentID int64) ([]dbmysql.Reaction, error)
+	DeleteReaction(ctx context.Context, userID, contentID int64) error
+}
 
 func (r *FeedRepository) AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error {
 	return r.db.WithContext(ctx).Create(reaction).Error
