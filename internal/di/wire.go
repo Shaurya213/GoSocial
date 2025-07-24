@@ -1,11 +1,14 @@
+//go:build wireinject
+// +build wireinject
+
 package di
 
 import (
 	"gosocial/internal/user"
+
 	"github.com/google/wire"
 	"gorm.io/gorm"
 )
-
 
 // Provider Functions from Repository layer
 func NewUserRepo(db *gorm.DB) user.UserRepository {
@@ -13,7 +16,7 @@ func NewUserRepo(db *gorm.DB) user.UserRepository {
 }
 
 func NewFriendRepo(db *gorm.DB) user.FriendRepository {
-	return user.NewFriendRepository(db)	
+	return user.NewFriendRepository(db)
 }
 
 func NewDeviceRepo(db *gorm.DB) user.DeviceRepository {
@@ -25,14 +28,14 @@ func NewUserService(userRepo user.UserRepository, friendRepo user.FriendReposito
 	return user.NewUserService(userRepo, friendRepo, deviceRepo)
 }
 
-//provider function from Handler
+// provider function from Handler
 func NewHandler(userService user.UserService) *user.Handler {
 	return user.NewHandler(userService)
 }
 
-// provider set- put all the provider functions from all the layer, 
+// provider set- put all the provider functions from all the layer,
 // wire automatically sets all the wiring between provider functions
-var UserSet = wire.NewSet( 
+var UserSet = wire.NewSet(
 	NewUserRepo,
 	NewFriendRepo,
 	NewDeviceRepo,
