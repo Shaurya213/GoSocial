@@ -102,27 +102,27 @@ func(h *Handler) AcceptFriendRequest(ctx context.Context, req *pb.FriendAcceptRe
 	return &pb.StatusResponse{Message: "Friend Request Accepted!!", Success: true}, nil
 }
 
-// func (h *Handler) ListFriends(ctx context.Context, req *pb.UserID) (*pb.FriendList, error){
-// 	userID, ok := ctx.Value("user_id").(uint64)
-//     if !ok {
-//         return nil, status.Error(codes.Unauthenticated, "user not authenticated")
-//     }
-// 	friends, err := h.userService.ListFriends(ctx, userID)
-// 	if err != nil {
-// 		return nil, status.Error(codes.Internal, err.Error())
-// 	}
-// 	var out []*pb.Friend
-// 	for _, u := range friends {
-// 		out = append(out, &pb.Friend{
-// 			UserId: int64(u.UserID),
-// 			Handle: u.Handle,
-// 			ProfileDetails: u.ProfileDetails,
-// 			Status: u.Status,
-// 		})
-// 	}
-// 	return &pb.FriendList{Friends: out}, nil
+func (h *Handler) ListFriends(ctx context.Context, req *pb.UserID) (*pb.FriendList, error){
+	userID, ok := ctx.Value("user_id").(uint64)
+    if !ok {
+        return nil, status.Error(codes.Unauthenticated, "user not authenticated")
+    }
+	friends, err := h.userService.ListFriends(ctx, userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	var out []*pb.Friend
+	for _, u := range friends {
+		out = append(out, &pb.Friend{
+			UserId: int64(u.UserID),
+			Handle: u.Handle,
+			ProfileDetails: u.ProfileDetails,
+			Status: u.Status,
+		})
+	}
+	return &pb.FriendList{Friends: out}, nil
 
-// }
+}
 
 
 func (h *Handler) RegisterDevice(ctx context.Context, req *pb.DeviceTokenRequest) (*pb.StatusResponse, error) {

@@ -16,7 +16,7 @@ type UserService interface {
 	UpdateProfile(ctx context.Context, userID uint64, email, phone, profileDetails string) error
 	SendFriendRequest(ctx context.Context, userID, targetUserID uint64) error
 	AcceptFriendRequest(ctx context.Context, userID, requesterID uint64) error
-	ListFriends(ctx context.Context, userID uint64) ([]*dbmysql.Friend, error)
+	ListFriends(ctx context.Context, userID uint64) ([]*dbmysql.User, error)
 	RegisterDevice(ctx context.Context, userID uint64, token, platform string) error
 	RemoveDevice(ctx context.Context, token string) error
 	GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error)
@@ -55,7 +55,7 @@ func(s *userService) RegisterUser(ctx context.Context, handle, email, password s
 		return nil, "", err
 	}
 	if exists {
-		return nil, "", errors.New("handle already exists!!")
+		return nil, "", errors.New("handle already exists")
 	}
 
 	//hashing password
@@ -145,7 +145,7 @@ func (s *userService) UpdateProfile(ctx context.Context, userID uint64, email, p
 
 func (s *userService) SendFriendRequest(ctx context.Context, userID, targetUserID uint64) error {
 	if userID == targetUserID {
-		return errors.New("cannot send rquest to yourself!!")
+		return errors.New("cannot send rquest to yourself")
 	}
 
 	alreadyFriends, err := s.friendRepo.CheckFriendshipExists(ctx, userID, targetUserID)
@@ -200,7 +200,7 @@ func (s *userService) AcceptFriendRequest(ctx context.Context, userID, requester
 }
 
 
-func (s *userService) ListFriends(ctx context.Context, userID uint64)([]*dbmysql.Friend, error) {
+func (s *userService) ListFriends(ctx context.Context, userID uint64)([]*dbmysql.User, error) {
 	return s.friendRepo.ListFriends(ctx, userID)
 }
 
