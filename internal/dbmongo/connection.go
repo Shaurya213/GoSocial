@@ -49,4 +49,3 @@ func NewMongoConnection(c *config.Config) (*MongoClient, error) {
 func (mc *MongoClient) Close(ctx context.Context) error {
     return mc.Client.Disconnect(ctx)
 }
-

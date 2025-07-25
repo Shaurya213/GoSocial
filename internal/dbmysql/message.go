@@ -2,7 +2,6 @@ package dbmysql
 
 import (
 	"time"
-
 	"gorm.io/gorm"
 )
 

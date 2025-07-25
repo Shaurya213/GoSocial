@@ -5,7 +5,7 @@ package api.v1;
 option go_package = "./api/v1/chat";
 
 import "google/protobuf/timestamp.proto";
-// Message format sent in chat
+
 message ChatMessage {
   string conversation_id = 1;
   string sender_id = 2;
@@ -13,7 +13,6 @@ message ChatMessage {
   google.protobuf.Timestamp sent_at = 4;
 }
 
-// Send a new message to a conversaiton
 message SendMessageRequest {
   string conversation_id = 1;
   string sender_id = 2;
