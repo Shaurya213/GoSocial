@@ -2,18 +2,16 @@ package dbmysql
 
 import (
 	"time"
-	"gorm.io/gorm"
 )
 
 type Message struct {
-	ID             uint   `gorm:"primaryKey"`
-	ConversationID string `gorm:"index;size:36"`
-	SenderID       string `gorm:"index;size:36"`
-	Content        string `gorm:"type:text"`
-	SentAt         time.Time
-	gorm.Model
-}
-
-func (Message) TableName() string {
-	return "messages"
+	MessageID      uint      `gorm:"primaryKey" json:"message_id"`
+	ConversationID string    `gorm:"index;size:36" json:"conversation_id"`
+	SenderID       string    `gorm:"index;size:36" json:"sender_id"`
+	Content        string    `gorm:"type:text" json:"content"`
+	SentAt         time.Time `gorm:"autoCreateTime" json:"sent_at"`
+	Status         string    `gorm:"type:enum('delivered','read','deleted')" json:"status"`
+	MediaRefID     *uint     `gorm:"index"` // foreign key to media_refs
+	//MediaRef       *MediaRef `gorm:"foreignKey:MediaRefID"` // eager load if needed
+	//gorm.Model
 }

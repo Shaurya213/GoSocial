@@ -5,12 +5,15 @@ go 1.23.4
 require (
 	github.com/golang/protobuf v1.5.4
 	go.mongodb.org/mongo-driver v1.17.4
-	go.uber.org/nilaway v0.0.0-20250718204829-eaab56378186
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6
+	gorm.io/driver/mysql v1.6.0
+	gorm.io/gorm v1.30.0
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -26,7 +29,5 @@ require (
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
-	golang.org/x/tools v0.32.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
-	gorm.io/gorm v1.30.0 // indirect
 )
