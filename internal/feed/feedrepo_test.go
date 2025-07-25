@@ -1,14 +1,24 @@
 package feed
 
 import (
+	"GoSocial/internal/dbmongo"
+	"GoSocial/internal/dbmysql"
 	"context"
 	"fmt"
 	"testing"
 	"time"
 
-	"GoSocial/internal/dbmysql"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+)
+
+var (
+	db         *gorm.DB
+	gridClient *dbmongo.GridFSClient
+	repo       *FeedRepository
+	setupErr   error
 )
 
 func NewMySQLConnection(user, password, dbname string) (*gorm.DB, error) {
@@ -16,17 +26,44 @@ func NewMySQLConnection(user, password, dbname string) (*gorm.DB, error) {
 	return gorm.Open(mysql.Open(dsn), &gorm.Config{})
 }
 
+func initTestRepo() {
+	if db != nil && gridClient != nil && repo != nil {
+		return // already initialized
+	}
+
+	// MySQL
+	db, setupErr = NewMySQLConnection("root", "root", "gosocial_test")
+	if setupErr != nil {
+		return
+	}
+	_ = db.AutoMigrate(&dbmysql.Content{}, &dbmysql.MediaRef{}, &dbmysql.Reaction{})
+
+	// Mongo
+	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		setupErr = err
+		return
+	}
+
+	mongoDB := mongoClient.Database("gosocial_test")
+	gridClient, setupErr = dbmongo.NewGridFSClient(mongoDB)
+	if setupErr != nil {
+		return
+	}
+
+	// Final repo
+	repo = NewFeedRepository(db, gridClient)
+}
+
 func ptr(s string) *string {
 	return &s
 }
 
 func TestCreateAndGetContent(t *testing.T) {
-	db, err := NewMySQLConnection("root", "root", "gosocial_test")
-	if err != nil {
-		t.Fatalf("failed to connect to DB: %v", err)
+	initTestRepo()
+	if setupErr != nil {
+		t.Fatalf("setup failed: %v", setupErr)
 	}
-	_ = db.AutoMigrate(&dbmysql.Content{}, &dbmysql.MediaRef{}, &dbmysql.Reaction{})
-	repo := NewFeedRepository(db)
 
 	now := time.Now()
 	content := &dbmysql.Content{
@@ -38,7 +75,7 @@ func TestCreateAndGetContent(t *testing.T) {
 		UpdatedAt:   now,
 	}
 
-	err = repo.CreateContent(context.Background(), content)
+	err := repo.CreateContent(context.Background(), content)
 	if err != nil {
 		t.Fatalf("CreateContent failed: %v", err)
 	}
@@ -53,10 +90,12 @@ func TestCreateAndGetContent(t *testing.T) {
 }
 
 func TestListUserContent(t *testing.T) {
-	db, _ := NewMySQLConnection("root", "root", "gosocial_test")
-	repo := NewFeedRepository(db)
-	ctx := context.Background()
+	initTestRepo()
+	if setupErr != nil {
+		t.Fatalf("setup failed: %v", setupErr)
+	}
 
+	ctx := context.Background()
 	contents, err := repo.ListUserContent(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListUserContent failed: %v", err)
@@ -67,10 +106,12 @@ func TestListUserContent(t *testing.T) {
 }
 
 func TestDeleteContent(t *testing.T) {
-	db, _ := NewMySQLConnection("root", "root", "gosocial_test")
-	repo := NewFeedRepository(db)
-	ctx := context.Background()
+	initTestRepo()
+	if setupErr != nil {
+		t.Fatalf("setup failed: %v", setupErr)
+	}
 
+	ctx := context.Background()
 	content := &dbmysql.Content{
 		AuthorID:    1,
 		Type:        "POST",
@@ -88,37 +129,46 @@ func TestDeleteContent(t *testing.T) {
 }
 
 func TestCreateAndGetMediaRef(t *testing.T) {
-	db, _ := NewMySQLConnection("root", "root", "gosocial_test")
-	repo := NewFeedRepository(db)
-	ctx := context.Background()
+	initTestRepo()
+	if setupErr != nil {
+		t.Fatalf("setup failed: %v", setupErr)
+	}
 
+	ctx := context.Background()
 	media := &dbmysql.MediaRef{
 		Type:       "image",
-		FilePath:   "/media/test.png",
 		FileName:   "test.png",
 		UploadedBy: 1,
 		UploadedAt: time.Now(),
 		SizeBytes:  1024,
 	}
-	err := repo.CreateMediaRef(ctx, media)
+	data := []byte("This is a test file content")
+
+	err := repo.CreateMediaRef(ctx, media, data)
 	if err != nil {
 		t.Fatalf("CreateMediaRef failed: %v", err)
 	}
 
-	got, err := repo.GetMediaRefByID(ctx, media.MediaRefID)
+	gotMeta, gotData, err := repo.GetMediaRefByID(ctx, media.MediaRefID)
 	if err != nil {
 		t.Fatalf("GetMediaRefByID failed: %v", err)
 	}
-	if got.FileName != media.FileName {
-		t.Errorf("Expected %s, got %s", media.FileName, got.FileName)
+
+	if gotMeta.FileName != media.FileName {
+		t.Errorf("Expected FileName %s, got %s", media.FileName, gotMeta.FileName)
+	}
+	if string(gotData) != string(data) {
+		t.Errorf("Expected file content %q, got %q", string(data), string(gotData))
 	}
 }
 
 func TestAddGetDeleteReaction(t *testing.T) {
-	db, _ := NewMySQLConnection("root", "root", "gosocial_test")
-	repo := NewFeedRepository(db)
-	ctx := context.Background()
+	initTestRepo()
+	if setupErr != nil {
+		t.Fatalf("setup failed: %v", setupErr)
+	}
 
+	ctx := context.Background()
 	reaction := &dbmysql.Reaction{
 		UserID:    1,
 		ContentID: 1,

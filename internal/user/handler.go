@@ -1,6 +1,7 @@
 package user
 
 import (
+	pb "GoSocial/api/v1/user"
 	"context"
 
 	"google.golang.org/grpc/codes"
