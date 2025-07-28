@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS messages (
-                                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                        message_id BIGINT AUTO_INCREMENT PRIMARY KEY,
                                         conversation_id BIGINT NOT NULL,
                                         sender_id BIGINT NOT NULL,
                                         body TEXT,

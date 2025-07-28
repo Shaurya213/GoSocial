@@ -13,20 +13,19 @@ import (
 
 // NewMySQL returns a GORM DB instance connected to MySQL
 func NewMySQL() (*gorm.DB, error) {
-	dsn := os.Getenv("gosocial_user:GOS0cial@123@tcp(192.168.63.59:3306)/gosocial_db?parseTime=true") // e.g. "user:pass@tcp(localhost:3306)/gosocial?parseTime=true"
+	dsn := os.Getenv("MYSQL_DSN")
 	if dsn == "" {
 		return nil, fmt.Errorf("MYSQL_DSN is not set")
 	}
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger:      logger.Default.LogMode(logger.Info), // can change to Error/Warn for prod
+		Logger:      logger.Default.LogMode(logger.Info),
 		PrepareStmt: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("cannot connect to MySQL: %w", err)
 	}
 
-	// Optional: Set connection pool config
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("sql.DB error: %w", err)
