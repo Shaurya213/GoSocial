@@ -70,9 +70,7 @@ func (s *FeedService) GetMediaRef(ctx context.Context, id int64) (*dbmysql.Media
 	return s.mediaRepo.GetMediaRefByID(ctx, id)
 }
 
-//
 // --------- REACTIONS ---------
-//
 
 func (s *FeedService) AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error {
 	reaction.CreatedAt = time.Now()
