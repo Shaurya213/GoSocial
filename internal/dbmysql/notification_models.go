@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Notification struct { //Notification struct contaning all the attributes for notification table
+type Notification struct {
 	ID            string  `gorm:"primaryKey;size:36"`
 	UserID        string  `gorm:"not null;index;size:36"`
 	Header        string  `gorm:"not null;size:255"`
@@ -14,8 +14,8 @@ type Notification struct { //Notification struct contaning all the attributes fo
 	ScheduledAt   *time.Time
 	SentAt        *time.Time
 	ReadAt        *time.Time
-	Type          string                      `gorm:"not null;size:50"`
-	Status        string                      `gorm:"default:'pending';size:50"`
+	Type          common.NotificationType     `gorm:"not null;size:50"`
+	Status        common.NotificationStatus   `gorm:"default:'pending';size:50"`
 	Priority      int                         `gorm:"default:1"`
 	TriggerUserID *string                     `gorm:"size:36"`
 	ContentID     *string                     `gorm:"size:36"`

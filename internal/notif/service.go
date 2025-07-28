@@ -259,11 +259,11 @@ func (s *NotificationService) GetUserNotifications(
 		notif := notifInterface.(*dbmysql.Notification)
 		responses[i] = &common.NotificationResponse{
 			ID:        notif.ID,
-			Type:      notif.Type,
+			Type:      string(notif.Type),
 			Header:    notif.Header,
 			Content:   notif.Content,
 			ImageURL:  notif.ImageURL,
-			Status:    notif.Status,
+			Status:    string(notif.Status),
 			Priority:  notif.Priority,
 			Metadata:  notif.Metadata,
 			CreatedAt: notif.CreatedAt,
