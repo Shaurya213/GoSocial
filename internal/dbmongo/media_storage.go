@@ -3,19 +3,12 @@ package dbmongo
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"io"
 )
-
-var MediaBaseURL = "http://localhost:8080/media/"
-
-func GetMediaURL(fileName string) string {
-	return fmt.Sprintf("%s%s", MediaBaseURL, fileName)
-}
 
 type GridFSClient struct {
 	bucket *gridfs.Bucket

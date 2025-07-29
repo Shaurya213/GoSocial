@@ -50,8 +50,9 @@ func (r *FeedRepository) DeleteContent(ctx context.Context, id int64) error {
 
 // --------- MEDIA REF ---------
 type MediaRef interface {
-	CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef) error
-	GetMediaRefByID(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
+	CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) error
+	GetMediaRefByID(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error)
+	DeleteMedia(ctx context.Context, mediaRefID int64) error
 }
 
 func (r *FeedRepository) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) error {
@@ -64,6 +65,7 @@ func (r *FeedRepository) CreateMediaRef(ctx context.Context, media *dbmysql.Medi
 	// Step 2: Store fileID in SQL media_ref.file_path
 	media.FilePath = fileID.Hex() // Assuming fileID is an ObjectID and we store its hex representation
 	media.UploadedAt = time.Now()
+	media.SizeBytes = int64(len(fileData))
 
 	// Step 3: Save metadata to MySQL
 	return r.db.WithContext(ctx).Create(media).Error
