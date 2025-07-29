@@ -8,12 +8,11 @@ import (
 	"log"
 	"sync"
 
-	pb "gosocial/api/v1/chat" // Generated from your `chat.proto`
+	pb "gosocial/api/v1/chat" 
 
 	"gosocial/internal/chat/service"
 	"gosocial/internal/dbmysql"
 
-	"google.golang.org/genproto/googleapis/actions/sdk/v2/conversation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -92,11 +91,11 @@ func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistory
 	}, nil
 }
 
-func (h *ChatHandler) SteamMessages(stream pb.ChatService_StreamMessagesServer) error {
+func (h *ChatHandler) StreamMessages(stream pb.ChatService_StreamMessagesServer) error {
 	var conversationID string
 
 	go func(){
-		for  {
+		for {
 			protoMsg, err := stream.Recv()
 			if err == io.EOF {
 				break
@@ -137,8 +136,6 @@ func (h *ChatHandler) SteamMessages(stream pb.ChatService_StreamMessagesServer) 
 
 	select {
 	case <-stream.Context().Done():
-		//stream cleanup
-		// h.remoeve fucntion
 		h.removeStream(conversationID, stream)
 		return stream.Context().Err()
 	}
