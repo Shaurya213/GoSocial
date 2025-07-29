@@ -55,25 +55,36 @@ func (r *friendRepository) UpdateFriendRequest(ctx context.Context, friend *dbmy
 // }
 
 func (r *friendRepository) ListFriends(ctx context.Context, userID uint64) ([]*dbmysql.User, error) {
-	var friends []dbmysql.Friend
+    var friends []dbmysql.Friend
+    
+    // Get friend relationships
+    err := r.db.WithContext(ctx).
+        Where("user_id = ? AND status = ?", userID, "accepted").
+        Order("accepted_at DESC").
+        Find(&friends).Error
+    
+    if err != nil {
+        return nil, err
+    }
 
-	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND status = ?", userID, "accepted").
-		Preload("FriendUser").
-		Order("accepted_at DESC").
-		Find(&friends).Error
+    // Manually fetch the friend users
+    var friendUserIDs []uint64
+    for _, f := range friends {
+        friendUserIDs = append(friendUserIDs, f.FriendUserID)
+    }
 
-	if err != nil {
-		return nil, err
-	}
+    if len(friendUserIDs) == 0 {
+        return []*dbmysql.User{}, nil
+    }
 
-	var friendUsers []*dbmysql.User
-	for _, f := range friends {
-		friendUsers = append(friendUsers, &f.FriendUser)
-	}
+    var friendUsers []*dbmysql.User
+    err = r.db.WithContext(ctx).
+        Where("user_id IN ?", friendUserIDs).
+        Find(&friendUsers).Error
 
-	return friendUsers, nil
+    return friendUsers, err
 }
+
 
 func (r *friendRepository) ListPendingRequests(ctx context.Context, userID uint64)([]*dbmysql.Friend, error) {
 	var requests []*dbmysql.Friend

@@ -15,9 +15,11 @@ type Handler struct {
 	userService UserService
 }
 
+
 func NewHandler(userService UserService) *Handler {
 	return &Handler{userService: userService}
 }
+
 
 func(h *Handler) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.AuthResponse, error) {
 	user, token, err := h.userService.RegisterUser(ctx, req.Handle, req.Email, req.Password)
@@ -30,7 +32,6 @@ func(h *Handler) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Aut
 		Message: "Registration successfull!!",
 	}, nil
 }
-
 
 func (h *Handler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.AuthResponse, error) {
 	user, token, err := h.userService.LoginUser(ctx, req.Handle, req.Password)

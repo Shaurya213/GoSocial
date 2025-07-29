@@ -2,6 +2,7 @@ package dbmysql
 
 import (
     "time"
+    "gorm.io/gorm"
 )
 
 type Friend struct {
@@ -12,7 +13,12 @@ type Friend struct {
     RequestedAt      time.Time  `gorm:"column:requested_at;autoCreateTime" json:"requested_at"`
     AcceptedAt       *time.Time `gorm:"column:accepted_at" json:"accepted_at"`
     UpdatedAt        time.Time  `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
+    DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
+
+    // User       User `gorm:"foreignKey:UserID;references:UserID" json:"user"`
+    // FriendUser User `gorm:"foreignKey:FriendUserID;references:UserID" json:"friend_user"`
     
-    User       User `gorm:"foreignKey:UserID;references:UserID" json:"user"`
-    FriendUser User `gorm:"foreignKey:FriendUserID;references:UserID" json:"friend_user"`
+    User       *User `gorm:"-" json:"user,omitempty"`
+    FriendUser *User `gorm:"-" json:"friend_user,omitempty"`
 }
+
