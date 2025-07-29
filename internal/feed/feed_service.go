@@ -42,6 +42,7 @@ func (s *FeedService) CreateContent(ctx context.Context, content *dbmysql.Conten
 	content.UpdatedAt = time.Now()
 	err := s.contentRepo.CreateContent(ctx, content)
 	return content.ContentID, err
+
 }
 
 func (s *FeedService) GetContent(ctx context.Context, id int64) (*dbmysql.Content, error) {
@@ -56,9 +57,7 @@ func (s *FeedService) DeleteContent(ctx context.Context, id int64) error {
 	return s.contentRepo.DeleteContent(ctx, id)
 }
 
-//
 // --------- MEDIA REF ---------
-//
 
 func (s *FeedService) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef) (int64, error) {
 	media.UploadedAt = time.Now()

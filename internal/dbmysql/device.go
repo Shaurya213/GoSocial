@@ -11,5 +11,6 @@ type Device struct {
 	RegisteredAt time.Time `gorm:"column:registered_at;autoCreateTime" json:"registered_at"`
 	LastActive   time.Time `gorm:"column:last_active;autoUpdateTime" json:"last_active"`
 
-	User User `gorm:"foreignKey:UserID;references:UserID" json:"user"`
+	// User User `gorm:"foreignKey:UserID;references:UserID" json:"user"`
+	User *User `gorm:"-" json:"user,omitempty"`
 }
