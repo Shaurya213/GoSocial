@@ -14,19 +14,16 @@ import (
 	"gosocial/internal/common"
 )
 
-// MediaStorage - simplified for GoSocial project requirements
 type MediaStorage struct {
 	gridFS *gridfs.Bucket
 }
 
-// NewMediaStorage - single constructor, no complexity
 func NewMediaStorage(mongoClient *MongoClient) *MediaStorage {
 	return &MediaStorage{
 		gridFS: mongoClient.GridFS,
 	}
 }
 
-// MediaFile - simplified struct matching PDF requirements
 type MediaFile struct {
 	ID         string               `json:"id"`          // GridFS ObjectID
 	Filename   string               `json:"filename"`    // Original filename
@@ -36,7 +33,6 @@ type MediaFile struct {
 	UploadedAt time.Time            `json:"uploaded_at"` // Upload timestamp
 }
 
-// UploadFile - single upload method for all media
 func (ms *MediaStorage) UploadFile(ctx context.Context, filename, mimeType, uploaderID string, content io.Reader) (*MediaFile, error) {
 	// Detect file type based on MIME
 	fileType := common.DetectFileType(mimeType)
@@ -74,7 +70,6 @@ func (ms *MediaStorage) UploadFile(ctx context.Context, filename, mimeType, uplo
 	}, nil
 }
 
-// DownloadFile - single download method
 func (ms *MediaStorage) DownloadFile(ctx context.Context, fileID string) (io.Reader, *MediaFile, error) {
 	objectID, err := primitive.ObjectIDFromHex(fileID)
 	if err != nil {
@@ -107,7 +102,6 @@ func (ms *MediaStorage) DownloadFile(ctx context.Context, fileID string) (io.Rea
 	return stream, mediaFile, nil
 }
 
-// DeleteFile - single delete method
 func (ms *MediaStorage) DeleteFile(ctx context.Context, fileID string) error {
 	objectID, err := primitive.ObjectIDFromHex(fileID)
 	if err != nil {
