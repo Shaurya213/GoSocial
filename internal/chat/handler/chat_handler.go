@@ -139,7 +139,6 @@ func (h *ChatHandler) StreamMessages(stream pb.ChatService_StreamMessagesServer)
 		h.removeStream(conversationID, stream)
 		return stream.Context().Err()
 	}
-
 }
 
 func (h *ChatHandler) broadcastToStream(conversationID string, msg *pb.ChatMessage) {
@@ -160,19 +159,18 @@ func (h *ChatHandler) broadcastToStream(conversationID string, msg *pb.ChatMessa
 }
 
 func (h *ChatHandler) removeStream(conversationID string, stream pb.ChatService_StreamMessagesServer) {
-    h.mu.Lock()
-    defer h.mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
-    streams, ok := h.streams[conversationID]
-    if !ok {
-        return
-    }
-
-    for i, st := range streams {
-        if st == stream {
-            h.streams[conversationID] = append(streams[:i], streams[i+1:]...)
-            break
-        }
-    }
+	streams, ok := h.streams[conversationID]
+	if !ok {
+		return
+	}
+	for i, st := range streams {
+		if st == stream {
+			h.streams[conversationID] = append(streams[:i], streams[i+1:]...)
+			break
+		}
+	}
 }
 
