@@ -12,9 +12,11 @@ import (
 	"gosocial/internal/dbmysql"
 
 	"firebase.google.com/go/v4/messaging"
+	"github.com/google/uuid"
 )
 
-type NotificationManager struct {
+// NotificationSubject implements the Subject interface
+type NotificationSubject struct {
 	observers    map[string]common.Observer
 	eventChannel chan common.NotificationEvent
 	workerPool   int
@@ -24,46 +26,46 @@ type NotificationManager struct {
 	wg           sync.WaitGroup
 }
 
-func NewNotificationManager(workerPoolSize int) *NotificationManager {
+func NewNotificationSubject() *NotificationSubject {
 	ctx, cancel := context.WithCancel(context.Background())
-
-	nm := &NotificationManager{
+	ns := &NotificationSubject{
 		observers:    make(map[string]common.Observer),
 		eventChannel: make(chan common.NotificationEvent, 1000),
-		workerPool:   workerPoolSize,
+		workerPool:   5, // Default worker pool size
 		ctx:          ctx,
 		cancel:       cancel,
 	}
 
-	for i := 0; i < workerPoolSize; i++ {
-		nm.wg.Add(1)
-		go nm.processEvents()
+	// Start worker goroutines
+	for i := 0; i < ns.workerPool; i++ {
+		ns.wg.Add(1)
+		go ns.processEvents()
 	}
 
-	return nm
+	return ns
 }
 
-func (nm *NotificationManager) Subscribe(observer common.Observer) {
-	nm.mu.Lock()
-	defer nm.mu.Unlock()
-	nm.observers[observer.Name()] = observer
+func (ns *NotificationSubject) Subscribe(observer common.Observer) {
+	ns.mu.Lock()
+	defer ns.mu.Unlock()
+	ns.observers[observer.Name()] = observer
 	log.Printf("Observer %s subscribed", observer.Name())
 }
 
-func (nm *NotificationManager) Unsubscribe(observer common.Observer) {
-	nm.mu.Lock()
-	defer nm.mu.Unlock()
-	delete(nm.observers, observer.Name())
+func (ns *NotificationSubject) Unsubscribe(observer common.Observer) {
+	ns.mu.Lock()
+	defer ns.mu.Unlock()
+	delete(ns.observers, observer.Name())
 	log.Printf("Observer %s unsubscribed", observer.Name())
 }
 
-func (nm *NotificationManager) Notify(event common.NotificationEvent) {
-	nm.mu.RLock()
-	observers := make([]common.Observer, 0, len(nm.observers))
-	for _, obs := range nm.observers {
+func (ns *NotificationSubject) Notify(event common.NotificationEvent) {
+	ns.mu.RLock()
+	observers := make([]common.Observer, 0, len(ns.observers))
+	for _, obs := range ns.observers {
 		observers = append(observers, obs)
 	}
-	nm.mu.RUnlock()
+	ns.mu.RUnlock()
 
 	for _, observer := range observers {
 		if err := observer.Update(event); err != nil {
@@ -72,74 +74,70 @@ func (nm *NotificationManager) Notify(event common.NotificationEvent) {
 	}
 }
 
-func (nm *NotificationManager) NotifyAsync(event common.NotificationEvent) {
+func (ns *NotificationSubject) NotifyAsync(event common.NotificationEvent) {
 	select {
-	case nm.eventChannel <- event:
-
-	case <-nm.ctx.Done():
+	case ns.eventChannel <- event:
+	case <-ns.ctx.Done():
 		return
 	default:
 		log.Printf("Notification channel full, dropping event: %s", event.Type)
 	}
 }
 
-func (nm *NotificationManager) processEvents() {
-	defer nm.wg.Done()
-
+func (ns *NotificationSubject) processEvents() {
+	defer ns.wg.Done()
 	for {
 		select {
-		case event := <-nm.eventChannel:
-			nm.Notify(event)
-		case <-nm.ctx.Done():
+		case event := <-ns.eventChannel:
+			ns.Notify(event)
+		case <-ns.ctx.Done():
 			return
 		}
 	}
 }
 
-func (nm *NotificationManager) Shutdown() {
-	nm.cancel()
-	close(nm.eventChannel)
-	nm.wg.Wait()
-	log.Println("NotificationManager shutdown complete")
+func (ns *NotificationSubject) Shutdown() {
+	ns.cancel()
+	close(ns.eventChannel)
+	ns.wg.Wait()
+	log.Println("NotificationSubject shutdown complete")
 }
 
+// NotificationService manages the notification system
 type NotificationService struct {
-	manager      *NotificationManager
+	config       *config.Config
 	repo         common.NotificationRepository
 	deviceRepo   common.DeviceRepository
+	fcmClient    *messaging.Client
 	emailService common.EmailService
+	subject      *NotificationSubject
 }
 
 func NewNotificationService(
-	cfg *config.Config,
+	config *config.Config,
 	repo common.NotificationRepository,
 	deviceRepo common.DeviceRepository,
 	fcmClient *messaging.Client,
 	emailService common.EmailService,
 ) *NotificationService {
-
-	manager := NewNotificationManager(cfg.Notification.Workers)
-
-	dbObserver := NewDatabaseNotificationObserver(repo)
-	manager.Subscribe(dbObserver)
-
-	if fcmClient != nil {
-		fcmObserver := NewFCMNotificationObserver(fcmClient, deviceRepo, repo)
-		manager.Subscribe(fcmObserver)
-	}
-
-	if emailService != nil {
-		emailObserver := NewEmailNotificationObserver(emailService)
-		manager.Subscribe(emailObserver)
-	}
-
 	service := &NotificationService{
-		manager:      manager,
+		config:       config,
 		repo:         repo,
 		deviceRepo:   deviceRepo,
+		fcmClient:    fcmClient,
 		emailService: emailService,
+		subject:      NewNotificationSubject(),
 	}
 
+	// Subscribe observers
+	if fcmClient != nil {
+		service.subject.Subscribe(NewFCMObserver(fcmClient, deviceRepo))
+	}
+	if emailService != nil {
+		service.subject.Subscribe(NewEmailObserver(emailService))
+	}
+
+	// Start scheduled notification processor
 	go service.processScheduledNotifications()
 
 	return service
@@ -151,7 +149,8 @@ func (s *NotificationService) SendNotification(ctx context.Context, event common
 		return fmt.Errorf("invalid notification event: %w", err)
 	}
 
-	s.manager.Notify(event)
+	// Notify observers asynchronously
+	s.subject.NotifyAsync(event)
 
 	log.Printf("Notification sent: type=%s, user=%s", event.Type, event.UserID)
 	return nil
@@ -170,119 +169,74 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, event co
 		return fmt.Errorf("invalid notification event: %w", err)
 	}
 
-	event.Priority = 1 // Lower priority for scheduled notifications
-	s.manager.NotifyAsync(event)
+	// Create scheduled notification in database
+	notification := &dbmysql.Notification{
+		ID:            uuid.New().String(),
+		UserID:        event.UserID,
+		Type:          event.Type,
+		Header:        event.Header,
+		Content:       event.Content,
+		ImageURL:      event.ImageURL,
+		ScheduledAt:   event.ScheduledAt,
+		Priority:      event.Priority,
+		Status:        common.StatusScheduled,
+		TriggerUserID: event.TriggerUserID,
+		Metadata:      dbmysql.NewDBNotificationMetadata(event.Metadata),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	if err := s.repo.Create(ctx, notification); err != nil {
+		return fmt.Errorf("failed to create scheduled notification: %w", err)
+	}
 
 	log.Printf("Notification scheduled: type=%s, user=%s, scheduled_at=%v",
 		event.Type, event.UserID, event.ScheduledAt)
 	return nil
 }
 
-func (s *NotificationService) SendFriendRequestNotification(
-	ctx context.Context,
-	fromUserID, toUserID, fromUserHandle string,
-) error {
-	event := common.NotificationEvent{
-		Type:          common.FriendRequestType,
-		UserID:        toUserID,
-		TriggerUserID: &fromUserID,
-		Header:        "New Friend Request",
-		Content:       fmt.Sprintf("%s sent you a friend request", fromUserHandle),
-		Priority:      3,
-		Metadata: common.NotificationMetadata{
-			"from_user_id": fromUserID,
-			"action":       "friend_request",
-		},
-	}
-
-	return s.SendNotification(ctx, event)
-}
-
-func (s *NotificationService) SendReactionNotification(
-	ctx context.Context,
-	contentID, contentAuthorID, reactorUserID, reactorHandle, reactionType string,
-) error {
-
-	if contentAuthorID == reactorUserID {
-		return nil
-	}
-
-	event := common.NotificationEvent{
-		Type:          common.PostReactionType,
-		UserID:        contentAuthorID,
-		TriggerUserID: &reactorUserID,
-		Header:        "New Reaction",
-		Content:       fmt.Sprintf("%s reacted to your post", reactorHandle),
-		Priority:      2,
-		Metadata: common.NotificationMetadata{
-			"content_id":     contentID,
-			"reaction_type":  reactionType,
-			"reactor_handle": reactorHandle,
-		},
-	}
-
-	return s.SendNotification(ctx, event)
-}
-
-func (s *NotificationService) SendMessageNotification(
-	ctx context.Context,
-	conversationID, recipientUserID, senderUserID, senderHandle, messagePreview string,
-) error {
-	event := common.NotificationEvent{
-		Type:          common.MessageType,
-		UserID:        recipientUserID,
-		TriggerUserID: &senderUserID,
-		Header:        fmt.Sprintf("Message from %s", senderHandle),
-		Content:       messagePreview,
-		Priority:      4, // High priority for messages
-		Metadata: common.NotificationMetadata{
-			"conversation_id": conversationID,
-			"sender_handle":   senderHandle,
-		},
-	}
-
-	return s.SendNotification(ctx, event)
-}
-
-func (s *NotificationService) GetUserNotifications(
-	ctx context.Context,
-	userID string,
-	limit, offset int,
-) ([]*common.NotificationResponse, error) {
-	notificationsInterface, err := s.repo.ByUserID(ctx, userID, limit, offset)
+func (s *NotificationService) GetUserNotifications(ctx context.Context, userID string, limit, offset int) ([]*dbmysql.Notification, error) {
+	results, err := s.repo.ByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get notifications: %w", err)
 	}
 
-	responses := make([]*common.NotificationResponse, len(notificationsInterface))
-	for i, notifInterface := range notificationsInterface {
-		notif := notifInterface.(*dbmysql.Notification)
-		responses[i] = &common.NotificationResponse{
-			ID:        notif.ID,
-			Type:      string(notif.Type),
-			Header:    notif.Header,
-			Content:   notif.Content,
-			ImageURL:  notif.ImageURL,
-			Status:    string(notif.Status),
-			Priority:  notif.Priority,
-			Metadata:  notif.Metadata,
-			CreatedAt: notif.CreatedAt,
-			ReadAt:    notif.ReadAt,
+	notifications := make([]*dbmysql.Notification, len(results))
+	for i, result := range results {
+		if notif, ok := result.(*dbmysql.Notification); ok {
+			notifications[i] = notif
+		} else {
+			return nil, fmt.Errorf("invalid notification type in result")
 		}
 	}
 
-	return responses, nil
+	return notifications, nil
 }
 
 func (s *NotificationService) MarkAsRead(ctx context.Context, notificationID, userID string) error {
 	return s.repo.MarkAsRead(ctx, notificationID, userID)
 }
 
-func (s *NotificationService) RegisterDeviceToken(
-	ctx context.Context,
-	userID, deviceToken, platform string,
-) error {
+func (s *NotificationService) RegisterDeviceToken(ctx context.Context, userID, deviceToken, platform string) error {
 	return s.deviceRepo.CreateOrUpdate(ctx, userID, deviceToken, platform)
+}
+
+func (s *NotificationService) SendFriendRequestNotification(ctx context.Context, fromUserID, toUserID, fromUsername string) error {
+	event := common.NotificationEvent{
+		Type:          common.FriendRequestType,
+		UserID:        toUserID,
+		TriggerUserID: &fromUserID,
+		Header:        "Friend Request",
+		Content:       fmt.Sprintf("%s sent you a friend request", fromUsername),
+		Priority:      3,
+		Metadata: common.NotificationMetadata{
+			"from_user_id":  fromUserID,
+			"from_username": fromUsername,
+			"action_type":   "friend_request",
+		},
+	}
+
+	return s.SendNotification(ctx, event)
 }
 
 func (s *NotificationService) processScheduledNotifications() {
@@ -291,32 +245,31 @@ func (s *NotificationService) processScheduledNotifications() {
 
 	for range ticker.C {
 		ctx := context.Background()
-
-		notificationsInterface, err := s.repo.
-			ScheduledNotifications(ctx, time.Now())
+		notificationsInterface, err := s.repo.ScheduledNotifications(ctx, time.Now())
 		if err != nil {
 			log.Printf("Failed to get scheduled notifications: %v", err)
 			continue
 		}
 
 		for _, notifInterface := range notificationsInterface {
-			notif := notifInterface.(*dbmysql.Notification)
+			if notif, ok := notifInterface.(*dbmysql.Notification); ok {
+				event := common.NotificationEvent{
+					Type:          notif.Type,
+					UserID:        notif.UserID,
+					TriggerUserID: notif.TriggerUserID,
+					Header:        notif.Header,
+					Content:       notif.Content,
+					ImageURL:      notif.ImageURL,
+					Priority:      notif.Priority,
+					Metadata:      notif.Metadata.ToCommon(),
+				}
 
-			event := common.NotificationEvent{
-				Type:          common.NotificationType(notif.Type),
-				UserID:        notif.UserID,
-				TriggerUserID: notif.TriggerUserID,
-				Header:        notif.Header,
-				Content:       notif.Content,
-				ImageURL:      notif.ImageURL,
-				Priority:      notif.Priority,
-				Metadata:      notif.Metadata,
-			}
+				s.subject.NotifyAsync(event)
 
-			s.manager.NotifyAsync(event)
-
-			if err := s.repo.UpdateStatus(ctx, notif.ID, string(common.StatusSent)); err != nil {
-				log.Printf("Failed to update notification status: %v", err)
+				// Update status to sent
+				if err := s.repo.UpdateStatus(ctx, notif.ID, string(common.StatusSent)); err != nil {
+					log.Printf("Failed to update notification status: %v", err)
+				}
 			}
 		}
 
@@ -347,6 +300,6 @@ func (s *NotificationService) validateEvent(event common.NotificationEvent) erro
 }
 
 func (s *NotificationService) Shutdown() {
-	s.manager.Shutdown()
+	s.subject.Shutdown()
 	log.Println("NotificationService shutdown complete")
 }

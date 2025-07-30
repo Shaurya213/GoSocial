@@ -1,9 +1,6 @@
 package common
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -29,22 +26,6 @@ const (
 )
 
 type NotificationMetadata map[string]interface{}
-
-func (nm *NotificationMetadata) Scan(value interface{}) error {
-	if value == nil {
-		*nm = make(NotificationMetadata)
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("cannot scan %T into NotificationMetadata", value)
-	}
-	return json.Unmarshal(bytes, nm)
-}
-
-func (nm NotificationMetadata) Value() (driver.Value, error) {
-	return json.Marshal(nm)
-}
 
 type NotificationEvent struct {
 	Type          NotificationType

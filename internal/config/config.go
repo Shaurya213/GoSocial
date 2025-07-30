@@ -1,12 +1,12 @@
 package config
 
-// import (
-//     "fmt"
-//     "log"
-//     "os"
-//     "strconv"
-//     "strings"
-// )
+import (
+	"fmt"
+	//     "log"
+	//     "os"
+	//     "strconv"
+	//     "strings"
+)
 
 type Config struct {
 	Server ServerConfig `json:"server"`
@@ -85,4 +85,21 @@ type LoggingConfig struct {
 	Level      string `json:"level"`       // debug, info, warn, error
 	Format     string `json:"format"`      // json, text
 	OutputPath string `json:"output_path"` // stdout, stderr, or file path
+}
+
+func (cfg *Config) DSN() string {
+	if cfg.Database.Host == "" {
+		cfg.Database.Host = "localhost"
+	}
+	if cfg.Database.Port == "" {
+		cfg.Database.Port = "3306"
+	}
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.DatabaseName,
+	)
 }

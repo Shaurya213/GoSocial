@@ -10,75 +10,42 @@ import (
 	"gosocial/internal/dbmysql"
 
 	"firebase.google.com/go/v4/messaging"
+	"github.com/google/uuid"
 )
 
-type DatabaseNotificationObserver struct {
-	repo common.NotificationRepository
-}
-
-func NewDatabaseNotificationObserver(repo common.NotificationRepository) *DatabaseNotificationObserver {
-	return &DatabaseNotificationObserver{
-		repo: repo,
-	}
-}
-
-func (d *DatabaseNotificationObserver) Name() string {
-	return "database_observer"
-}
-
-func (d *DatabaseNotificationObserver) Update(event common.NotificationEvent) error {
-	notification := &dbmysql.Notification{
-		ID:            generateID(),
-		UserID:        event.UserID,
-		Type:          event.Type,
-		Header:        event.Header,
-		Content:       event.Content,
-		ImageURL:      event.ImageURL,
-		ScheduledAt:   event.ScheduledAt,
-		Priority:      event.Priority,
-		Status:        common.StatusPending,
-		Metadata:      event.Metadata,
-		TriggerUserID: event.TriggerUserID,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-	}
-
-	if err := d.repo.Create(context.Background(), notification); err != nil {
-		return fmt.Errorf("failed to store notification: %w", err)
-	}
-
-	return nil
-}
-
-type FCMNotificationObserver struct {
+// FCMObserver handles Firebase Cloud Messaging notifications
+type FCMObserver struct {
 	fcmClient  *messaging.Client
 	deviceRepo common.DeviceRepository
-	notifRepo  common.NotificationRepository
 }
 
-func NewFCMNotificationObserver(
+func NewFCMObserver(
 	fcmClient *messaging.Client,
 	deviceRepo common.DeviceRepository,
-	notifRepo common.NotificationRepository,
-) *FCMNotificationObserver {
-	return &FCMNotificationObserver{
+) *FCMObserver {
+	return &FCMObserver{
 		fcmClient:  fcmClient,
 		deviceRepo: deviceRepo,
-		notifRepo:  notifRepo,
 	}
 }
 
-func (f *FCMNotificationObserver) Name() string {
+func (f *FCMObserver) Name() string {
 	return "fcm_observer"
 }
 
-func (f *FCMNotificationObserver) Update(event common.NotificationEvent) error {
+func (f *FCMObserver) Update(event common.NotificationEvent) error {
 	// Skip if scheduled for future
 	if event.ScheduledAt != nil && event.ScheduledAt.After(time.Now()) {
 		log.Printf("Notification scheduled for future, skipping FCM: %v", event.ScheduledAt)
 		return nil
 	}
 
+	if f.fcmClient == nil {
+		log.Printf("FCM client not available, skipping FCM notification")
+		return nil
+	}
+
+	// Get active devices for user
 	devicesInterface, err := f.deviceRepo.ActiveByUserID(context.Background(), event.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to get devices: %w", err)
@@ -89,15 +56,24 @@ func (f *FCMNotificationObserver) Update(event common.NotificationEvent) error {
 		return nil
 	}
 
-	tokens := make([]string, len(devicesInterface))
-	devices := make([]*dbmysql.Device, len(devicesInterface))
-	for i, deviceInterface := range devicesInterface {
-		device := deviceInterface.(*dbmysql.Device)
-		tokens[i] = device.DeviceToken
-		devices[i] = device
+	// Convert to device structs and extract tokens
+	tokens := make([]string, 0, len(devicesInterface))
+	devices := make([]*dbmysql.Device, 0, len(devicesInterface))
+
+	for _, deviceInterface := range devicesInterface {
+		if device, ok := deviceInterface.(*dbmysql.Device); ok {
+			tokens = append(tokens, device.DeviceToken)
+			devices = append(devices, device)
+		}
 	}
 
-	fcmMessage := &messaging.MulticastMessage{ // Create FCM message
+	if len(tokens) == 0 {
+		log.Printf("No valid device tokens found for user: %s", event.UserID)
+		return nil
+	}
+
+	// Create FCM message
+	fcmMessage := &messaging.MulticastMessage{
 		Notification: &messaging.Notification{
 			Title: event.Header,
 			Body:  event.Content,
@@ -109,10 +85,12 @@ func (f *FCMNotificationObserver) Update(event common.NotificationEvent) error {
 		Tokens: tokens,
 	}
 
+	// Add image if provided
 	if event.ImageURL != nil {
 		fcmMessage.Notification.ImageURL = *event.ImageURL
 	}
 
+	// Add metadata to FCM data
 	if event.Metadata != nil {
 		for key, value := range event.Metadata {
 			if strValue, ok := value.(string); ok {
@@ -121,30 +99,29 @@ func (f *FCMNotificationObserver) Update(event common.NotificationEvent) error {
 		}
 	}
 
+	// Send FCM message
 	response, err := f.fcmClient.SendMulticast(context.Background(), fcmMessage)
 	if err != nil {
 		return fmt.Errorf("failed to send FCM: %w", err)
 	}
 
+	// Handle failed tokens
 	f.handleFailedTokens(response, devices)
 
 	log.Printf("FCM notification sent: %d success, %d failure",
 		response.SuccessCount, response.FailureCount)
-
 	return nil
 }
 
-func (f *FCMNotificationObserver) handleFailedTokens(
+func (f *FCMObserver) handleFailedTokens(
 	response *messaging.BatchResponse,
 	devices []*dbmysql.Device,
 ) {
 	for i, result := range response.Responses {
 		if !result.Success && i < len(devices) {
 			device := devices[i]
-
 			if messaging.IsRegistrationTokenNotRegistered(result.Error) ||
 				messaging.IsInvalidArgument(result.Error) {
-
 				// Mark token as inactive
 				if err := f.deviceRepo.UpdateTokenStatus(
 					context.Background(),
@@ -152,34 +129,36 @@ func (f *FCMNotificationObserver) handleFailedTokens(
 					false,
 				); err != nil {
 					log.Printf("Failed to update token status: %v", err)
+				} else {
+					log.Printf("Marked invalid token as inactive: %s", device.DeviceToken)
 				}
-
-				log.Printf("Marked invalid token as inactive: %s", device.DeviceToken)
 			}
 		}
 	}
 }
 
-type EmailNotificationObserver struct {
+// EmailObserver handles email notifications
+type EmailObserver struct {
 	emailService common.EmailService
 }
 
-func NewEmailNotificationObserver(emailService common.EmailService) *EmailNotificationObserver {
-	return &EmailNotificationObserver{
+func NewEmailObserver(emailService common.EmailService) *EmailObserver {
+	return &EmailObserver{
 		emailService: emailService,
 	}
 }
 
-func (e *EmailNotificationObserver) Name() string {
+func (e *EmailObserver) Name() string {
 	return "email_observer"
 }
 
-func (e *EmailNotificationObserver) Update(event common.NotificationEvent) error {
+func (e *EmailObserver) Update(event common.NotificationEvent) error {
 	// Only send emails for high priority notifications
 	if event.Priority < 4 {
 		return nil
 	}
 
+	// Check if email is provided in metadata
 	email, ok := event.Metadata["email"].(string)
 	if !ok || email == "" {
 		return nil // No email provided
@@ -196,6 +175,41 @@ func (e *EmailNotificationObserver) Update(event common.NotificationEvent) error
 	return nil
 }
 
-func generateID() string {
-	return fmt.Sprintf("notif_%d", time.Now().UnixNano()) // generateID generates a unique ID for notifications
+// DatabaseObserver handles database storage of notifications
+type DatabaseObserver struct {
+	repo common.NotificationRepository
+}
+
+func NewDatabaseObserver(repo common.NotificationRepository) *DatabaseObserver {
+	return &DatabaseObserver{
+		repo: repo,
+	}
+}
+
+func (d *DatabaseObserver) Name() string {
+	return "database_observer"
+}
+
+func (d *DatabaseObserver) Update(event common.NotificationEvent) error {
+	notification := &dbmysql.Notification{
+		ID:            uuid.New().String(),
+		UserID:        event.UserID,
+		Type:          event.Type,
+		Header:        event.Header,
+		Content:       event.Content,
+		ImageURL:      event.ImageURL,
+		ScheduledAt:   event.ScheduledAt,
+		Priority:      event.Priority,
+		Status:        common.StatusPending,
+		TriggerUserID: event.TriggerUserID,
+		Metadata:      dbmysql.NewDBNotificationMetadata(event.Metadata),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	if err := d.repo.Create(context.Background(), notification); err != nil {
+		return fmt.Errorf("failed to store notification: %w", err)
+	}
+
+	return nil
 }

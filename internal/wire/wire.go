@@ -5,6 +5,7 @@ package wire
 
 import (
 	"context"
+	"fmt"
 	"gosocial/internal/common"
 	"gosocial/internal/config"
 	"gosocial/internal/dbmysql"
@@ -32,7 +33,7 @@ type Application struct {
 func InitializeApplication() (*Application, error) {
 	wire.Build(
 		ProvideConfig,
-		ProvideDatabaseConnection,
+		ProvideDatabaseConnection, // Now properly receives config as parameter
 		dbmysql.NewNotificationRepository,
 		dbmysql.NewDeviceRepository,
 		ProvideFirebaseApp,
@@ -56,11 +57,11 @@ func ProvideConfig() *config.Config {
 			Environment:  getEnvOrDefault("ENVIRONMENT", "development"),
 		},
 		Database: config.DatabaseConfig{
-			Host:         getEnvOrDefault("DB_HOST", "localhost"),
+			Host:         getEnvOrDefault("DB_HOST", "192.168.63.59"),
 			Port:         getEnvOrDefault("DB_PORT", "3306"),
-			Username:     getEnvOrDefault("DB_USER", "root"),
-			Password:     getEnvOrDefault("DB_PASSWORD", ""),
-			DatabaseName: getEnvOrDefault("DB_NAME", "gosocial"),
+			Username:     getEnvOrDefault("DB_USER", "gosocial_user"),
+			Password:     getEnvOrDefault("DB_PASSWORD", "G0Social@123"),
+			DatabaseName: getEnvOrDefault("DB_NAME", "gosocial_db"),
 			MaxOpenConns: 25,
 			MaxIdleConns: 5,
 		},
@@ -95,12 +96,23 @@ func ProvideConfig() *config.Config {
 	}
 }
 
-// ProvideDatabaseConnection creates database connection
-func ProvideDatabaseConnection() (*gorm.DB, error) {
-	dsn := config.DSN()
+// ✅ FIXED: Now receives config as a parameter instead of calling ProvideConfig()
+func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
+	// Build DSN with proper validation
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.DatabaseName,
+	)
+
+	log.Printf("Attempting to connect to database: %s:%s/%s",
+		cfg.Database.Host, cfg.Database.Port, cfg.Database.DatabaseName)
+
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	// Set global db instance
@@ -137,7 +149,7 @@ func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
 	app, err := firebase.NewApp(context.Background(), firebaseConfig, opt)
 	if err != nil {
 		log.Printf("Firebase initialization failed: %v", err)
-		return nil, nil // Return nil instead of error to make it optional
+		return nil, nil
 	}
 
 	return app, nil
@@ -147,13 +159,13 @@ func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
 func ProvideFirebaseMessaging(app *firebase.App) (*messaging.Client, error) {
 	if app == nil {
 		log.Println("Firebase app not available, FCM disabled")
-		return nil, nil // Return nil, nil to make it optional
+		return nil, nil
 	}
 
 	client, err := app.Messaging(context.Background())
 	if err != nil {
 		log.Printf("Failed to create FCM client: %v", err)
-		return nil, nil // Return nil, nil to make it optional
+		return nil, nil
 	}
 
 	return client, nil
