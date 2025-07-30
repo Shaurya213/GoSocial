@@ -17,21 +17,19 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// NotificationHandler wraps the gRPC handler
-type NotificationHandler struct {
+type NotificationHandler struct { //distinguieshes it with other handlers and wraps it
 	GRPC *GRPCHandler
 }
 
-// GRPCHandler implements the notification gRPC service
-type GRPCHandler struct {
+type GRPCHandler struct { //handler services of grpc handler
 	pb.UnimplementedNotificationServiceServer
-	service    *NotificationService
-	config     *config.Config
-	fcmClient  *messaging.Client
-	deviceRepo common.DeviceRepository
+	service    *NotificationService    //business logic
+	config     *config.Config          //applicatio configuration
+	fcmClient  *messaging.Client       //firebase confirguration which is disabled right now
+	deviceRepo common.DeviceRepository //device token storage
 }
 
-// NewNotificationHandler creates a new notification handler
+// basically a constructor for Notification handler
 func NewNotificationHandler(
 	service *NotificationService,
 	config *config.Config,
@@ -44,7 +42,7 @@ func NewNotificationHandler(
 	}
 }
 
-// NewGRPCHandler creates a new gRPC handler
+// Factory patter , helps in dependencies injection, encapsulates handler creation and dependencies injection
 func NewGRPCHandler(
 	service *NotificationService,
 	config *config.Config,
@@ -59,15 +57,15 @@ func NewGRPCHandler(
 	}
 }
 
-// SendNotification sends an immediate notification
+// imdeiately sends notification
 func (h *GRPCHandler) SendNotification(ctx context.Context, req *pb.SendNotificationRequest) (*pb.SendNotificationResponse, error) {
 	log.Printf("gRPC SendNotification called for user: %s", req.UserId)
 
 	if req.UserId == "" || req.Title == "" || req.Message == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id, title, and message are required")
+		return nil, status.Error(codes.InvalidArgument, "user_id, title, and message are required") //improves that no invalid entries are added in the server
 	}
 
-	// Create notification event
+	// convert proto  request to internal domain model and also helps in type conversion
 	event := common.NotificationEvent{
 		Type:     common.NotificationType(req.Type),
 		UserID:   req.UserId,
@@ -77,7 +75,7 @@ func (h *GRPCHandler) SendNotification(ctx context.Context, req *pb.SendNotifica
 		Metadata: convertMapToMetadata(req.Data),
 	}
 
-	// Send notification through service
+	// returns succes response with generated id
 	err := h.service.SendNotification(ctx, event)
 	if err != nil {
 		log.Printf("Failed to send notification: %v", err)
@@ -91,7 +89,7 @@ func (h *GRPCHandler) SendNotification(ctx context.Context, req *pb.SendNotifica
 	}, nil
 }
 
-// ScheduleNotification schedules a notification for later delivery
+// ScheduleNotification  for later delivery
 func (h *GRPCHandler) ScheduleNotification(ctx context.Context, req *pb.ScheduleNotificationRequest) (*pb.ScheduleNotificationResponse, error) {
 	log.Printf("gRPC ScheduleNotification called for user: %s", req.UserId)
 
@@ -104,7 +102,7 @@ func (h *GRPCHandler) ScheduleNotification(ctx context.Context, req *pb.Schedule
 		return nil, status.Error(codes.InvalidArgument, "scheduled_at must be in the future")
 	}
 
-	// Create notification event
+	// proto conversion and type casting
 	event := common.NotificationEvent{
 		Type:        common.NotificationType(req.Type),
 		UserID:      req.UserId,
@@ -115,7 +113,6 @@ func (h *GRPCHandler) ScheduleNotification(ctx context.Context, req *pb.Schedule
 		Metadata:    convertMapToMetadata(req.Data),
 	}
 
-	// Schedule notification through service
 	err := h.service.ScheduleNotification(ctx, event)
 	if err != nil {
 		log.Printf("Failed to schedule notification: %v", err)
@@ -137,7 +134,7 @@ func (h *GRPCHandler) GetUserNotifications(ctx context.Context, req *pb.GetUserN
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
-	// Set default pagination
+	// Set default pagination and prevents overload
 	page := req.Page
 	if page <= 0 {
 		page = 1
@@ -151,14 +148,14 @@ func (h *GRPCHandler) GetUserNotifications(ctx context.Context, req *pb.GetUserN
 	// Calculate offset
 	offset := int((page - 1) * limit)
 
-	// Get notifications from service
+	// we can get notification from service
 	notifications, err := h.service.GetUserNotifications(ctx, req.UserId, int(limit), offset)
 	if err != nil {
 		log.Printf("Failed to get user notifications: %v", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get notifications: %v", err))
 	}
 
-	// Convert to proto format
+	// converting data into proto format
 	pbNotifications := make([]*pb.NotificationData, len(notifications))
 	for i, notif := range notifications {
 		pbNotifications[i] = &pb.NotificationData{
@@ -184,7 +181,7 @@ func (h *GRPCHandler) GetUserNotifications(ctx context.Context, req *pb.GetUserN
 	}, nil
 }
 
-// MarkAsRead marks a notification as read
+// marks the notification as read
 func (h *GRPCHandler) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest) (*pb.MarkAsReadResponse, error) {
 	log.Printf("gRPC MarkAsRead called for notification: %s", req.NotificationId)
 
@@ -192,7 +189,6 @@ func (h *GRPCHandler) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest)
 		return nil, status.Error(codes.InvalidArgument, "notification_id is required")
 	}
 
-	// Mark as read through service
 	err := h.service.MarkAsRead(ctx, req.NotificationId, req.UserId)
 	if err != nil {
 		log.Printf("Failed to mark notification as read: %v", err)
@@ -205,15 +201,14 @@ func (h *GRPCHandler) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest)
 	}, nil
 }
 
-// RegisterDevice registers a device for push notifications
+// TO send push notification in a particular device register the device first
 func (h *GRPCHandler) RegisterDevice(ctx context.Context, req *pb.RegisterDeviceRequest) (*pb.RegisterDeviceResponse, error) {
 	log.Printf("gRPC RegisterDevice called for user: %s", req.UserId)
 
 	if req.UserId == "" || req.DeviceToken == "" || req.Platform == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id, device_token, and platform are required")
+		return nil, status.Error(codes.InvalidArgument, "user_id, device_token, and platform are required") // checks  for invalid entries again
 	}
 
-	// Register device through service
 	err := h.service.RegisterDeviceToken(ctx, req.UserId, req.DeviceToken, req.Platform)
 	if err != nil {
 		log.Printf("Failed to register device: %v", err)
@@ -226,7 +221,7 @@ func (h *GRPCHandler) RegisterDevice(ctx context.Context, req *pb.RegisterDevice
 	}, nil
 }
 
-// SendFriendRequest sends a friend request notification
+// sends a friend request notification
 func (h *GRPCHandler) SendFriendRequest(ctx context.Context, req *pb.SendFriendRequestRequest) (*pb.SendFriendRequestResponse, error) {
 	log.Printf("gRPC SendFriendRequest called from %s to %s", req.FromUserId, req.ToUserId)
 
@@ -234,7 +229,6 @@ func (h *GRPCHandler) SendFriendRequest(ctx context.Context, req *pb.SendFriendR
 		return nil, status.Error(codes.InvalidArgument, "from_user_id, to_user_id, and from_username are required")
 	}
 
-	// Send friend request notification through service
 	err := h.service.SendFriendRequestNotification(ctx, req.FromUserId, req.ToUserId, req.FromUsername)
 	if err != nil {
 		log.Printf("Failed to send friend request notification: %v", err)
@@ -248,7 +242,7 @@ func (h *GRPCHandler) SendFriendRequest(ctx context.Context, req *pb.SendFriendR
 	}, nil
 }
 
-// HealthCheck returns the health status of the service
+// health status of the service is checked here
 func (h *GRPCHandler) HealthCheck(ctx context.Context, req *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
 	return &pb.HealthCheckResponse{
 		Status:    "healthy",
@@ -257,7 +251,7 @@ func (h *GRPCHandler) HealthCheck(ctx context.Context, req *pb.HealthCheckReques
 	}, nil
 }
 
-// Helper functions
+// Helper functions to map the data
 func convertMapToMetadata(data map[string]string) common.NotificationMetadata {
 	metadata := make(common.NotificationMetadata)
 	for k, v := range data {
@@ -266,7 +260,7 @@ func convertMapToMetadata(data map[string]string) common.NotificationMetadata {
 	return metadata
 }
 
-// Fixed: Create separate function for converting DBNotificationMetadata to map
+// converts dbnotifications into a map
 func convertDBNotificationMetadataToMap(metadata dbmysql.DBNotificationMetadata) map[string]string {
 	result := make(map[string]string)
 	for k, v := range metadata {
@@ -277,7 +271,6 @@ func convertDBNotificationMetadataToMap(metadata dbmysql.DBNotificationMetadata)
 	return result
 }
 
-// Keep the original function for common.NotificationMetadata
 func convertNotificationMetadataToMap(metadata common.NotificationMetadata) map[string]string {
 	result := make(map[string]string)
 	for k, v := range metadata {
@@ -290,18 +283,4 @@ func convertNotificationMetadataToMap(metadata common.NotificationMetadata) map[
 
 func generateNotificationID() string {
 	return fmt.Sprintf("notif_%d", time.Now().UnixNano())
-}
-
-func generateID() string {
-	return fmt.Sprintf("notif_%d", time.Now().UnixNano())
-}
-
-func convertMetadataToMap(metadata dbmysql.DBNotificationMetadata) map[string]string {
-	result := make(map[string]string)
-	for k, v := range metadata {
-		if str, ok := v.(string); ok {
-			result[k] = str
-		}
-	}
-	return result
 }
