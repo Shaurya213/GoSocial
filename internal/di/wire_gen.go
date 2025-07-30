@@ -7,18 +7,31 @@
 package di
 
 import (
-	"gorm.io/gorm"
+	"github.com/google/wire"
 	"gosocial/internal/chat/handler"
 	"gosocial/internal/chat/repository"
 	"gosocial/internal/chat/service"
+	"gosocial/internal/config"
+	"gosocial/internal/dbmysql"
 )
 
 // Injectors from wire.go:
 
-// This is just a declaration — wire will generate the real body
-func InitChatHandler(db *gorm.DB) *handler.ChatHandler {
+// InitializeChatService wires up all dependencies for the chat service
+func InitializeChatService() (*handler.ChatHandler, func(), error) {
+	configConfig := config.LoadConfig()
+	db, err := dbmysql.NewMySQL(configConfig)
+	if err != nil {
+		return nil, nil, err
+	}
 	chatRepository := repository.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepository)
 	chatHandler := handler.NewChatHandler(chatService)
-	return chatHandler
+	return chatHandler, func() {
+	}, nil
 }
+
+// wire.go:
+
+// ChatProviderSet contains all providers for chat service
+var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler)

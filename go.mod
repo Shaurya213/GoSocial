@@ -6,12 +6,11 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/google/wire v0.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver v1.17.4
-	google.golang.org/genproto v0.0.0-20250728155136-f173205681a0
 	google.golang.org/grpc v1.74.2
 	google.golang.org/protobuf v1.36.6
 	gorm.io/driver/mysql v1.6.0
+	github.com/joho/godotenv v1.5.1
 	gorm.io/gorm v1.30.0
 )
 
