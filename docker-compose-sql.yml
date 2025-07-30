@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: gosocial_mysql
+    restart: unless-stopped
+    ports:
+      - "3310:3306"  # Expose MySQL on port 3310
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: gosocial_db
+      MYSQL_USER: gosocial_user
+      MYSQL_PASSWORD: G0Social@123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sql_network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  sql_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+          gateway: 172.22.0.1

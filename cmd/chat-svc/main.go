@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	defaultPort = "7003" // Chat service port
+	defaultPort = "7003" 
 	defaultDBHost = "localhost"
 	defaultDBPort = "3306"
 	defaultDBUser = "root"
