@@ -13,8 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// FCMObserver handles Firebase Cloud Messaging notifications
-type FCMObserver struct {
+type FCMObserver struct { // FCMObserver handles Firebase Cloud Messaging notifications
 	fcmClient  *messaging.Client
 	deviceRepo common.DeviceRepository
 }
@@ -34,7 +33,7 @@ func (f *FCMObserver) Name() string {
 }
 
 func (f *FCMObserver) Update(event common.NotificationEvent) error {
-	// Skip if scheduled for future
+
 	if event.ScheduledAt != nil && event.ScheduledAt.After(time.Now()) {
 		log.Printf("Notification scheduled for future, skipping FCM: %v", event.ScheduledAt)
 		return nil
@@ -45,7 +44,6 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 		return nil
 	}
 
-	// Get active devices for user
 	devicesInterface, err := f.deviceRepo.ActiveByUserID(context.Background(), event.UserID)
 	if err != nil {
 		return fmt.Errorf("failed to get devices: %w", err)
@@ -56,7 +54,6 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 		return nil
 	}
 
-	// Convert to device structs and extract tokens
 	tokens := make([]string, 0, len(devicesInterface))
 	devices := make([]*dbmysql.Device, 0, len(devicesInterface))
 
@@ -72,7 +69,6 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 		return nil
 	}
 
-	// Create FCM message
 	fcmMessage := &messaging.MulticastMessage{
 		Notification: &messaging.Notification{
 			Title: event.Header,
@@ -85,12 +81,10 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 		Tokens: tokens,
 	}
 
-	// Add image if provided
 	if event.ImageURL != nil {
 		fcmMessage.Notification.ImageURL = *event.ImageURL
 	}
 
-	// Add metadata to FCM data
 	if event.Metadata != nil {
 		for key, value := range event.Metadata {
 			if strValue, ok := value.(string); ok {
@@ -99,13 +93,11 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 		}
 	}
 
-	// Send FCM message
 	response, err := f.fcmClient.SendMulticast(context.Background(), fcmMessage)
 	if err != nil {
 		return fmt.Errorf("failed to send FCM: %w", err)
 	}
 
-	// Handle failed tokens
 	f.handleFailedTokens(response, devices)
 
 	log.Printf("FCM notification sent: %d success, %d failure",
@@ -137,7 +129,6 @@ func (f *FCMObserver) handleFailedTokens(
 	}
 }
 
-// EmailObserver handles email notifications
 type EmailObserver struct {
 	emailService common.EmailService
 }
@@ -153,12 +144,11 @@ func (e *EmailObserver) Name() string {
 }
 
 func (e *EmailObserver) Update(event common.NotificationEvent) error {
-	// Only send emails for high priority notifications
+
 	if event.Priority < 4 {
 		return nil
 	}
 
-	// Check if email is provided in metadata
 	email, ok := event.Metadata["email"].(string)
 	if !ok || email == "" {
 		return nil // No email provided
@@ -175,7 +165,6 @@ func (e *EmailObserver) Update(event common.NotificationEvent) error {
 	return nil
 }
 
-// DatabaseObserver handles database storage of notifications
 type DatabaseObserver struct {
 	repo common.NotificationRepository
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// NotificationSubject implements the Subject interface
 type NotificationSubject struct {
 	observers    map[string]common.Observer
 	eventChannel chan common.NotificationEvent
@@ -36,7 +35,6 @@ func NewNotificationSubject() *NotificationSubject {
 		cancel:       cancel,
 	}
 
-	// Start worker goroutines
 	for i := 0; i < ns.workerPool; i++ {
 		ns.wg.Add(1)
 		go ns.processEvents()
@@ -103,7 +101,6 @@ func (ns *NotificationSubject) Shutdown() {
 	log.Println("NotificationSubject shutdown complete")
 }
 
-// NotificationService manages the notification system
 type NotificationService struct {
 	config       *config.Config
 	repo         common.NotificationRepository
@@ -129,7 +126,6 @@ func NewNotificationService(
 		subject:      NewNotificationSubject(),
 	}
 
-	// Subscribe observers
 	if fcmClient != nil {
 		service.subject.Subscribe(NewFCMObserver(fcmClient, deviceRepo))
 	}
@@ -137,19 +133,17 @@ func NewNotificationService(
 		service.subject.Subscribe(NewEmailObserver(emailService))
 	}
 
-	// Start scheduled notification processor
 	go service.processScheduledNotifications()
 
 	return service
 }
 
 func (s *NotificationService) SendNotification(ctx context.Context, event common.NotificationEvent) error {
-	// Validate event
+
 	if err := s.validateEvent(event); err != nil {
 		return fmt.Errorf("invalid notification event: %w", err)
 	}
 
-	// Notify observers asynchronously
 	s.subject.NotifyAsync(event)
 
 	log.Printf("Notification sent: type=%s, user=%s", event.Type, event.UserID)
@@ -169,7 +163,6 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, event co
 		return fmt.Errorf("invalid notification event: %w", err)
 	}
 
-	// Create scheduled notification in database
 	notification := &dbmysql.Notification{
 		ID:            uuid.New().String(),
 		UserID:        event.UserID,
