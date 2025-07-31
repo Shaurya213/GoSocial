@@ -23,6 +23,7 @@ type Content interface {
 	GetContentByID(ctx context.Context, id int64) (*dbmysql.Content, error)
 	ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error)
 	DeleteContent(ctx context.Context, id int64) error
+	ListExpiredStories(ctx context.Context, now time.Time) ([]dbmysql.Content, error)
 }
 
 func (r *FeedRepository) CreateContent(ctx context.Context, content *dbmysql.Content) error {
@@ -129,4 +130,12 @@ func (r *FeedRepository) DeleteReaction(ctx context.Context, userID, contentID i
 	return r.db.WithContext(ctx).
 		Where("user_id = ? AND content_id = ?", userID, contentID).
 		Delete(&dbmysql.Reaction{}).Error
+}
+
+func (r *FeedRepository) ListExpiredStories(ctx context.Context, now time.Time) ([]dbmysql.Content, error) {
+	var stories []dbmysql.Content
+	err := r.db.WithContext(ctx).
+		Where("type = ? AND expiration IS NOT NULL AND expiration <= ?", "STORY", now).
+		Find(&stories).Error
+	return stories, err
 }
