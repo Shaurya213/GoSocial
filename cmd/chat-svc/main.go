@@ -11,27 +11,15 @@ import (
 
 	pb "gosocial/api/v1/chat"
 	"gosocial/internal/config"
-	"gosocial/internal/dbmysql"
 	"gosocial/internal/di"
 
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-	err := godotenv.Load()
-
-	log.Println("Starting Chat Service...")
-
-	// Load configuration to set environment variables
 	cfg := config.LoadConfig()
-	
-	// Set MYSQL_DSN environment variable that NewMySQL() expects
-	if err := os.Setenv("MYSQL_DSN", cfg.GetMySQLDSN()); err != nil {
-		log.Fatalf("Failed to set MYSQL_DSN: %v", err)
-	}
-
+	log.Println("Starting Chat Service...")
 	// Initialize all dependencies via Wire
 	chatHandler, cleanup, err := di.InitializeChatService()
 	if err != nil {
@@ -39,13 +27,6 @@ func main() {
 	}
 	defer cleanup()
 	// Auto-migrate the Message model (since your NewMySQL doesn't do this)
-	db, err := dbmysql.NewMySQL(cfg)
-	if err != nil {
-		log.Fatalf("Failed to get database connection for migration: %v", err)
-	}
-	if err := db.AutoMigrate(&dbmysql.Message{}); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
-	}
 
 	// Create gRPC server
 	grpcServer := grpc.NewServer(

@@ -2,7 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -72,7 +75,12 @@ func LoadConfig() *Config {
 }
 
 func getEnv(key, defaultValue string) string {
+	err := godotenv.Load()
+	if err != nil{
+		log.Fatalf(".env is not laoding: %v", err)
+	}
 	if value := os.Getenv(key); value != "" {
+		fmt.Println(value)
 		return value
 	}
 	return defaultValue
