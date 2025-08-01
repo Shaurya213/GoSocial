@@ -54,7 +54,6 @@ func LoadConfig() *Config {
 	cmd := exec.Command("bash", "-c", "curl ifconfig.me")
 	out, _ := cmd.Output()
 	ip:= string(out)
-	ip = "localhost"
 
 	//Setting new envs
 	os.Setenv("MONGO_HOST", ip)
