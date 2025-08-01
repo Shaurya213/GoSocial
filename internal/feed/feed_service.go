@@ -10,24 +10,28 @@ import (
 	"GoSocial/internal/dbmysql"
 )
 
+// media helper to generate media URLs
 var MediaBaseURL = "http://localhost:8080/media/"
 
 func GetMediaURL(fileName string) string {
 	return fmt.Sprintf("%s%s", MediaBaseURL, fileName)
 }
 
+// all functions in this file are higher-order functions that call the core service methods
 type FeedUsecase interface {
-	CreateContent(ctx context.Context, content *dbmysql.Content) (int64, error)
-	GetContent(ctx context.Context, id int64) (*dbmysql.Content, error)
-	ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error)
-	DeleteContent(ctx context.Context, id int64) error
-
-	CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef) (int64, error)
-	GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
-
-	AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error
+	CreatePost(ctx context.Context, authorID int64, text string, fileData []byte, fileName string, mediaType string, privacy string) (int64, error)
+	CreateReel(ctx context.Context, authorID int64, caption string, fileData []byte, fileName string, durationSecs int, privacy string) (int64, error)
+	CreateStory(ctx context.Context, authorID int64, fileData []byte, mediaType string, mediaName string, durationSec int, privacy string) (int64, error)
+	ReactToContent(ctx context.Context, userID, contentID int64, reactionType string) error
 	GetReactions(ctx context.Context, contentID int64) ([]dbmysql.Reaction, error)
 	DeleteReaction(ctx context.Context, userID, contentID int64) error
+	GetTimeline(ctx context.Context, userID int64) ([]dbmysql.Content, []string, error)
+	GetUserContent(ctx context.Context, requesterID, targetUserID int64) ([]dbmysql.Content, []string, error)
+
+	GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
+
+	GetContent(ctx context.Context, id int64) (*dbmysql.Content, string, error)
+	DeleteContent(ctx context.Context, id int64) error
 }
 
 type FeedService struct {
@@ -245,17 +249,18 @@ func (s *FeedService) CreateReel(
 
 func (s *FeedService) CreateStory(
 	ctx context.Context,
-	content *dbmysql.Content,
+	authorID int64,
 	fileData []byte,
 	mediaType string,
 	mediaName string,
 	durationSec int,
+	privacy string,
 ) (int64, error) {
-	// Set story-specific fields
-	content.Type = "STORY"
-	content.CreatedAt = time.Now()
-	content.UpdatedAt = time.Now()
-
+	content := &dbmysql.Content{
+		AuthorID: authorID,
+		Type:     "STORY",
+		Privacy:  privacy,
+	}
 	duration := durationSec
 	content.Duration = &duration
 	expiration := content.CreatedAt.Add(time.Duration(durationSec) * time.Second)

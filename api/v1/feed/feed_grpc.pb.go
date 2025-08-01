@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: feed.proto
+// source: api/v1/feed.proto
 
-package apiv1
+package feed
 
 import (
 	context "context"
@@ -19,20 +19,36 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	FeedService_CreateContent_FullMethodName   = "/api.v1.FeedService/CreateContent"
-	FeedService_GetContentByID_FullMethodName  = "/api.v1.FeedService/GetContentByID"
-	FeedService_DeleteContent_FullMethodName   = "/api.v1.FeedService/DeleteContent"
-	FeedService_ListUserContent_FullMethodName = "/api.v1.FeedService/ListUserContent"
+	FeedService_CreatePost_FullMethodName     = "/api.v1.FeedService/CreatePost"
+	FeedService_CreateReel_FullMethodName     = "/api.v1.FeedService/CreateReel"
+	FeedService_CreateStory_FullMethodName    = "/api.v1.FeedService/CreateStory"
+	FeedService_ReactToContent_FullMethodName = "/api.v1.FeedService/ReactToContent"
+	FeedService_GetReactions_FullMethodName   = "/api.v1.FeedService/GetReactions"
+	FeedService_DeleteReaction_FullMethodName = "/api.v1.FeedService/DeleteReaction"
+	FeedService_GetTimeline_FullMethodName    = "/api.v1.FeedService/GetTimeline"
+	FeedService_GetUserContent_FullMethodName = "/api.v1.FeedService/GetUserContent"
+	FeedService_GetMediaRef_FullMethodName    = "/api.v1.FeedService/GetMediaRef"
+	FeedService_GetContent_FullMethodName     = "/api.v1.FeedService/GetContent"
+	FeedService_DeleteContent_FullMethodName  = "/api.v1.FeedService/DeleteContent"
 )
 
 // FeedServiceClient is the client API for FeedService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ---------- Feed Service ----------
 type FeedServiceClient interface {
-	CreateContent(ctx context.Context, in *CreateContentRequest, opts ...grpc.CallOption) (*ContentResponse, error)
-	GetContentByID(ctx context.Context, in *GetContentRequest, opts ...grpc.CallOption) (*ContentResponse, error)
-	DeleteContent(ctx context.Context, in *DeleteContentRequest, opts ...grpc.CallOption) (*DeleteContentResponse, error)
-	ListUserContent(ctx context.Context, in *ListUserContentRequest, opts ...grpc.CallOption) (*ListUserContentResponse, error)
+	CreatePost(ctx context.Context, in *CreatePostRequest, opts ...grpc.CallOption) (*FeedResponse, error)
+	CreateReel(ctx context.Context, in *CreateReelRequest, opts ...grpc.CallOption) (*FeedResponse, error)
+	CreateStory(ctx context.Context, in *CreateStoryRequest, opts ...grpc.CallOption) (*FeedResponse, error)
+	ReactToContent(ctx context.Context, in *ReactionRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	GetReactions(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*ReactionList, error)
+	DeleteReaction(ctx context.Context, in *DeleteReactionRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	GetTimeline(ctx context.Context, in *UserID, opts ...grpc.CallOption) (*TimelineResponse, error)
+	GetUserContent(ctx context.Context, in *GetUserContentRequest, opts ...grpc.CallOption) (*TimelineResponse, error)
+	GetMediaRef(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*MediaResponse, error)
+	GetContent(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*FeedResponse, error)
+	DeleteContent(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*StatusResponse, error)
 }
 
 type feedServiceClient struct {
@@ -43,40 +59,110 @@ func NewFeedServiceClient(cc grpc.ClientConnInterface) FeedServiceClient {
 	return &feedServiceClient{cc}
 }
 
-func (c *feedServiceClient) CreateContent(ctx context.Context, in *CreateContentRequest, opts ...grpc.CallOption) (*ContentResponse, error) {
+func (c *feedServiceClient) CreatePost(ctx context.Context, in *CreatePostRequest, opts ...grpc.CallOption) (*FeedResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ContentResponse)
-	err := c.cc.Invoke(ctx, FeedService_CreateContent_FullMethodName, in, out, cOpts...)
+	out := new(FeedResponse)
+	err := c.cc.Invoke(ctx, FeedService_CreatePost_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *feedServiceClient) GetContentByID(ctx context.Context, in *GetContentRequest, opts ...grpc.CallOption) (*ContentResponse, error) {
+func (c *feedServiceClient) CreateReel(ctx context.Context, in *CreateReelRequest, opts ...grpc.CallOption) (*FeedResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ContentResponse)
-	err := c.cc.Invoke(ctx, FeedService_GetContentByID_FullMethodName, in, out, cOpts...)
+	out := new(FeedResponse)
+	err := c.cc.Invoke(ctx, FeedService_CreateReel_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *feedServiceClient) DeleteContent(ctx context.Context, in *DeleteContentRequest, opts ...grpc.CallOption) (*DeleteContentResponse, error) {
+func (c *feedServiceClient) CreateStory(ctx context.Context, in *CreateStoryRequest, opts ...grpc.CallOption) (*FeedResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteContentResponse)
+	out := new(FeedResponse)
+	err := c.cc.Invoke(ctx, FeedService_CreateStory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) ReactToContent(ctx context.Context, in *ReactionRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, FeedService_ReactToContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) GetReactions(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*ReactionList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReactionList)
+	err := c.cc.Invoke(ctx, FeedService_GetReactions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) DeleteReaction(ctx context.Context, in *DeleteReactionRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, FeedService_DeleteReaction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) GetTimeline(ctx context.Context, in *UserID, opts ...grpc.CallOption) (*TimelineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TimelineResponse)
+	err := c.cc.Invoke(ctx, FeedService_GetTimeline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) GetUserContent(ctx context.Context, in *GetUserContentRequest, opts ...grpc.CallOption) (*TimelineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TimelineResponse)
+	err := c.cc.Invoke(ctx, FeedService_GetUserContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) GetMediaRef(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*MediaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MediaResponse)
+	err := c.cc.Invoke(ctx, FeedService_GetMediaRef_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) GetContent(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*FeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FeedResponse)
+	err := c.cc.Invoke(ctx, FeedService_GetContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *feedServiceClient) DeleteContent(ctx context.Context, in *ContentID, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
 	err := c.cc.Invoke(ctx, FeedService_DeleteContent_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *feedServiceClient) ListUserContent(ctx context.Context, in *ListUserContentRequest, opts ...grpc.CallOption) (*ListUserContentResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListUserContentResponse)
-	err := c.cc.Invoke(ctx, FeedService_ListUserContent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -86,11 +172,20 @@ func (c *feedServiceClient) ListUserContent(ctx context.Context, in *ListUserCon
 // FeedServiceServer is the server API for FeedService service.
 // All implementations must embed UnimplementedFeedServiceServer
 // for forward compatibility.
+//
+// ---------- Feed Service ----------
 type FeedServiceServer interface {
-	CreateContent(context.Context, *CreateContentRequest) (*ContentResponse, error)
-	GetContentByID(context.Context, *GetContentRequest) (*ContentResponse, error)
-	DeleteContent(context.Context, *DeleteContentRequest) (*DeleteContentResponse, error)
-	ListUserContent(context.Context, *ListUserContentRequest) (*ListUserContentResponse, error)
+	CreatePost(context.Context, *CreatePostRequest) (*FeedResponse, error)
+	CreateReel(context.Context, *CreateReelRequest) (*FeedResponse, error)
+	CreateStory(context.Context, *CreateStoryRequest) (*FeedResponse, error)
+	ReactToContent(context.Context, *ReactionRequest) (*StatusResponse, error)
+	GetReactions(context.Context, *ContentID) (*ReactionList, error)
+	DeleteReaction(context.Context, *DeleteReactionRequest) (*StatusResponse, error)
+	GetTimeline(context.Context, *UserID) (*TimelineResponse, error)
+	GetUserContent(context.Context, *GetUserContentRequest) (*TimelineResponse, error)
+	GetMediaRef(context.Context, *ContentID) (*MediaResponse, error)
+	GetContent(context.Context, *ContentID) (*FeedResponse, error)
+	DeleteContent(context.Context, *ContentID) (*StatusResponse, error)
 	mustEmbedUnimplementedFeedServiceServer()
 }
 
@@ -101,17 +196,38 @@ type FeedServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedFeedServiceServer struct{}
 
-func (UnimplementedFeedServiceServer) CreateContent(context.Context, *CreateContentRequest) (*ContentResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateContent not implemented")
+func (UnimplementedFeedServiceServer) CreatePost(context.Context, *CreatePostRequest) (*FeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreatePost not implemented")
 }
-func (UnimplementedFeedServiceServer) GetContentByID(context.Context, *GetContentRequest) (*ContentResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetContentByID not implemented")
+func (UnimplementedFeedServiceServer) CreateReel(context.Context, *CreateReelRequest) (*FeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateReel not implemented")
 }
-func (UnimplementedFeedServiceServer) DeleteContent(context.Context, *DeleteContentRequest) (*DeleteContentResponse, error) {
+func (UnimplementedFeedServiceServer) CreateStory(context.Context, *CreateStoryRequest) (*FeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateStory not implemented")
+}
+func (UnimplementedFeedServiceServer) ReactToContent(context.Context, *ReactionRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReactToContent not implemented")
+}
+func (UnimplementedFeedServiceServer) GetReactions(context.Context, *ContentID) (*ReactionList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReactions not implemented")
+}
+func (UnimplementedFeedServiceServer) DeleteReaction(context.Context, *DeleteReactionRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteReaction not implemented")
+}
+func (UnimplementedFeedServiceServer) GetTimeline(context.Context, *UserID) (*TimelineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTimeline not implemented")
+}
+func (UnimplementedFeedServiceServer) GetUserContent(context.Context, *GetUserContentRequest) (*TimelineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserContent not implemented")
+}
+func (UnimplementedFeedServiceServer) GetMediaRef(context.Context, *ContentID) (*MediaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMediaRef not implemented")
+}
+func (UnimplementedFeedServiceServer) GetContent(context.Context, *ContentID) (*FeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetContent not implemented")
+}
+func (UnimplementedFeedServiceServer) DeleteContent(context.Context, *ContentID) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteContent not implemented")
-}
-func (UnimplementedFeedServiceServer) ListUserContent(context.Context, *ListUserContentRequest) (*ListUserContentResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListUserContent not implemented")
 }
 func (UnimplementedFeedServiceServer) mustEmbedUnimplementedFeedServiceServer() {}
 func (UnimplementedFeedServiceServer) testEmbeddedByValue()                     {}
@@ -134,44 +250,188 @@ func RegisterFeedServiceServer(s grpc.ServiceRegistrar, srv FeedServiceServer) {
 	s.RegisterService(&FeedService_ServiceDesc, srv)
 }
 
-func _FeedService_CreateContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateContentRequest)
+func _FeedService_CreatePost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePostRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FeedServiceServer).CreateContent(ctx, in)
+		return srv.(FeedServiceServer).CreatePost(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FeedService_CreateContent_FullMethodName,
+		FullMethod: FeedService_CreatePost_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedServiceServer).CreateContent(ctx, req.(*CreateContentRequest))
+		return srv.(FeedServiceServer).CreatePost(ctx, req.(*CreatePostRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FeedService_GetContentByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetContentRequest)
+func _FeedService_CreateReel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateReelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FeedServiceServer).GetContentByID(ctx, in)
+		return srv.(FeedServiceServer).CreateReel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FeedService_GetContentByID_FullMethodName,
+		FullMethod: FeedService_CreateReel_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedServiceServer).GetContentByID(ctx, req.(*GetContentRequest))
+		return srv.(FeedServiceServer).CreateReel(ctx, req.(*CreateReelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_CreateStory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateStoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).CreateStory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_CreateStory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).CreateStory(ctx, req.(*CreateStoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_ReactToContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReactionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).ReactToContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_ReactToContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).ReactToContent(ctx, req.(*ReactionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_GetReactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ContentID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).GetReactions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_GetReactions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).GetReactions(ctx, req.(*ContentID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_DeleteReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteReactionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).DeleteReaction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_DeleteReaction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).DeleteReaction(ctx, req.(*DeleteReactionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_GetTimeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).GetTimeline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_GetTimeline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).GetTimeline(ctx, req.(*UserID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_GetUserContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserContentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).GetUserContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_GetUserContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).GetUserContent(ctx, req.(*GetUserContentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_GetMediaRef_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ContentID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).GetMediaRef(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_GetMediaRef_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).GetMediaRef(ctx, req.(*ContentID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FeedService_GetContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ContentID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FeedServiceServer).GetContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: FeedService_GetContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FeedServiceServer).GetContent(ctx, req.(*ContentID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _FeedService_DeleteContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteContentRequest)
+	in := new(ContentID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -183,25 +443,7 @@ func _FeedService_DeleteContent_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: FeedService_DeleteContent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedServiceServer).DeleteContent(ctx, req.(*DeleteContentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FeedService_ListUserContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListUserContentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FeedServiceServer).ListUserContent(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FeedService_ListUserContent_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FeedServiceServer).ListUserContent(ctx, req.(*ListUserContentRequest))
+		return srv.(FeedServiceServer).DeleteContent(ctx, req.(*ContentID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -214,22 +456,50 @@ var FeedService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*FeedServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateContent",
-			Handler:    _FeedService_CreateContent_Handler,
+			MethodName: "CreatePost",
+			Handler:    _FeedService_CreatePost_Handler,
 		},
 		{
-			MethodName: "GetContentByID",
-			Handler:    _FeedService_GetContentByID_Handler,
+			MethodName: "CreateReel",
+			Handler:    _FeedService_CreateReel_Handler,
+		},
+		{
+			MethodName: "CreateStory",
+			Handler:    _FeedService_CreateStory_Handler,
+		},
+		{
+			MethodName: "ReactToContent",
+			Handler:    _FeedService_ReactToContent_Handler,
+		},
+		{
+			MethodName: "GetReactions",
+			Handler:    _FeedService_GetReactions_Handler,
+		},
+		{
+			MethodName: "DeleteReaction",
+			Handler:    _FeedService_DeleteReaction_Handler,
+		},
+		{
+			MethodName: "GetTimeline",
+			Handler:    _FeedService_GetTimeline_Handler,
+		},
+		{
+			MethodName: "GetUserContent",
+			Handler:    _FeedService_GetUserContent_Handler,
+		},
+		{
+			MethodName: "GetMediaRef",
+			Handler:    _FeedService_GetMediaRef_Handler,
+		},
+		{
+			MethodName: "GetContent",
+			Handler:    _FeedService_GetContent_Handler,
 		},
 		{
 			MethodName: "DeleteContent",
 			Handler:    _FeedService_DeleteContent_Handler,
 		},
-		{
-			MethodName: "ListUserContent",
-			Handler:    _FeedService_ListUserContent_Handler,
-		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "feed.proto",
+	Metadata: "api/v1/feed.proto",
 }

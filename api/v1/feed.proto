@@ -1,68 +1,133 @@
 syntax = "proto3";
 
 package api.v1;
-
-option go_package = "/feed;apiv1";
+option go_package = "api/v1/feed;feed";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
 
-// ----- Service -----
-
+// ---------- Feed Service ----------
 service FeedService {
-  rpc CreateContent(CreateContentRequest) returns (ContentResponse);
-  rpc GetContentByID(GetContentRequest) returns (ContentResponse);
-  rpc DeleteContent(DeleteContentRequest) returns (DeleteContentResponse);
-  rpc ListUserContent(ListUserContentRequest) returns (ListUserContentResponse);
+  rpc CreatePost(CreatePostRequest) returns (FeedResponse);
+  rpc CreateReel(CreateReelRequest) returns (FeedResponse);
+  rpc CreateStory(CreateStoryRequest) returns (FeedResponse);
+
+  rpc ReactToContent(ReactionRequest) returns (StatusResponse);
+  rpc GetReactions(ContentID) returns (ReactionList);
+  rpc DeleteReaction(DeleteReactionRequest) returns (StatusResponse);
+
+  rpc GetTimeline(UserID) returns (TimelineResponse);
+  rpc GetUserContent(GetUserContentRequest) returns (TimelineResponse);
+
+  rpc GetMediaRef(ContentID) returns (MediaResponse);
+
+  rpc GetContent(ContentID) returns (FeedResponse);
+  rpc DeleteContent(ContentID) returns (StatusResponse);
 }
 
-// ----- Messages -----
+// ---------- Messages ----------
+
+message UserID {
+  int64 user_id = 1;
+}
+
+message ContentID {
+  int64 content_id = 1;
+}
+
+message GetUserContentRequest {
+  int64 requester_id = 1;
+  int64 target_user_id = 2;
+}
+
+message CreatePostRequest {
+  int64 author_id = 1;
+  string text = 2;
+  bytes media_data = 3;
+  string media_type = 4;
+  string media_name = 5;
+  string privacy = 6;
+}
+
+message CreateReelRequest {
+  int64 author_id = 1;
+  string caption = 2;
+  bytes media_data = 3;
+  string media_name = 4;
+  int32 duration_secs = 5;
+  string privacy = 6;
+}
+
+message CreateStoryRequest {
+  int64 author_id = 1;
+  string media_type = 2;
+  string media_name = 3;
+  bytes media_data = 4;
+  int32 duration_secs = 5;
+  string privacy = 6;
+}
+
+message ReactionRequest {
+  int64 user_id = 1;
+  int64 content_id = 2;
+  string type = 3; // like, love, laugh, etc.
+}
+
+message DeleteReactionRequest {
+  int64 user_id = 1;
+  int64 content_id = 2;
+}
+
+message Reaction {
+  int64 id = 1;
+  int64 user_id = 2;
+  int64 content_id = 3;
+  string type = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message ReactionList {
+  repeated Reaction reactions = 1;
+}
+
+message TimelineContent {
+  int64 content_id = 1;
+  int64 author_id = 2;
+  string type = 3;
+  string text = 4;
+  string media_url = 5;
+  string privacy = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+message TimelineResponse {
+  repeated TimelineContent contents = 1;
+}
+
+message FeedResponse {
+  int64 content_id = 1;
+  string media_url = 2;
+  string message = 3;
+}
+
+message StatusResponse {
+  string message = 1;
+}
+
+
+
+message MediaResponse {
+  int64 media_ref_id = 1;
+  string file_path = 2;
+  int64 size_bytes = 3;
+  google.protobuf.Timestamp uploaded_at = 4; 
+}
 
 message Content {
   int64 content_id = 1;
   int64 author_id = 2;
-  string type = 3; // "POST", "STORY", "REEL"
-  google.protobuf.StringValue text_content = 4;
-  google.protobuf.Int64Value media_ref_id = 5;
-  string privacy = 6; // "public", "friends", "private"
-  google.protobuf.Timestamp expiration = 7;
-  google.protobuf.Int32Value duration = 8;
-  google.protobuf.Timestamp created_at = 9;
-  google.protobuf.Timestamp updated_at = 10;
-}
-
-// ----- Requests and Responses -----
-
-message CreateContentRequest {
-  int64 author_id = 1;
-  string type = 2;
-  google.protobuf.StringValue text_content = 3;
-  google.protobuf.Int64Value media_ref_id = 4;
-  string privacy = 5;
-  google.protobuf.Timestamp expiration = 6;
-  google.protobuf.Int32Value duration = 7;
-}
-
-message ContentResponse {
-  Content content = 1;
-}
-
-message GetContentRequest {
-  int64 content_id = 1;
-}
-
-message DeleteContentRequest {
-  int64 content_id = 1;
-}
-
-message DeleteContentResponse {
-  bool success = 1;
-}
-
-message ListUserContentRequest {
-  int64 user_id = 1;
-}
-
-message ListUserContentResponse {
-  repeated Content contents = 1;
+  string type = 3;
+  string text_content = 4;
+  string media_url = 5;
+  string privacy = 6;
+  string timestamp = 7;
 }
