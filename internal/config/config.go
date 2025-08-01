@@ -57,8 +57,8 @@ func LoadConfig() *Config {
 	//ip = "localhost"
 
 	//Setting new envs
-	os.Setenv("MONGO_HOST", ip)
-	os.Setenv("MYSQL_HOST", ip)
+	//os.Setenv("MONGO_HOST", ip)
+	//os.Setenv("MYSQL_HOST", ip)
 	os.Setenv("MEDIA_BASE_URL", fmt.Sprintf("http://%s:%s/media", ip, os.Getenv("MEDIA_SERVER_PORT")))
 
 	return &Config{
