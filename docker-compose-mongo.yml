@@ -36,6 +36,24 @@ services:
       gosocial_network:
         ipv4_address: 172.20.0.11
 
+services:
+  mysql:
+    image: mysql:8
+    container_name: gosocial_mysql
+    restart: unless-stopped
+    ports:
+      - "3310:3306"  
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: gosocial_db
+      MYSQL_USER: gosocial_user
+      MYSQL_PASSWORD: G0Social@123
+    command: --default-authentication-plugin=mysql_native_password  
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sql_network
+
 #  media-server:
 #    build:
 #      context: .
@@ -60,6 +78,8 @@ services:
 
 volumes:
   mongodb_data:
+    driver: local
+  mysql_data:
     driver: local
 
 networks:
