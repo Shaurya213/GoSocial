@@ -51,7 +51,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - sql_network
+      gosocial_network:
+        ipv4_address: 172.20.0.12
 
 #  media-server:
 #    build:
