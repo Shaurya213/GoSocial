@@ -31,7 +31,7 @@ func NewChatHandler(chatService service.ChatService) *ChatHandler {
 	}
 }
 
-//Send messeges
+//SendMessages is a method that exists
 func (h *ChatHandler) SendMessages(ctx context.Context, req *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
 	domainMsg := &dbmysql.Message{
 		ConversationID: req.ConversationId,

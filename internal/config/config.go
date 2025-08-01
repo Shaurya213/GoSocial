@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 
 	"github.com/joho/godotenv"
 )
@@ -45,6 +46,21 @@ type ServerConfig struct {
 }
 
 func LoadConfig() *Config {
+	err := godotenv.Load()
+	if err != nil{
+		log.Fatalf(".env is not laoding: %v", err)
+	}
+
+	cmd := exec.Command("bash", "-c", "curl ifconfig.me")
+	out, _ := cmd.Output()
+	ip:= string(out)
+	ip = "localhost"
+
+	//Setting new envs
+	os.Setenv("MONGO_HOST", ip)
+	os.Setenv("MYSQL_HOST", ip)
+	os.Setenv("MEDIA_BASE_URL", fmt.Sprintf("http://%s:%s/media", ip, os.Getenv("MEDIA_SERVER_PORT")))
+
 	return &Config{
 		MongoDB: MongoDBConfig{
 			Host:     getEnv("MONGO_HOST", "localhost"),
@@ -75,10 +91,6 @@ func LoadConfig() *Config {
 }
 
 func getEnv(key, defaultValue string) string {
-	err := godotenv.Load()
-	if err != nil{
-		log.Fatalf(".env is not laoding: %v", err)
-	}
 	if value := os.Getenv(key); value != "" {
 		fmt.Println(value)
 		return value
