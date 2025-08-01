@@ -3,11 +3,11 @@ package feed
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	userpb "GoSocial/api/v1/user"
 	"GoSocial/internal/dbmysql"
-	//"google.golang.org/grpc"
 )
 
 var MediaBaseURL = "http://localhost:8080/media/"
@@ -277,4 +277,112 @@ func (s *FeedService) ReactToContent(ctx context.Context, userID, contentID int6
 		CreatedAt: time.Now(),
 	}
 	return s.AddReaction(ctx, reaction)
+}
+
+func (s *FeedService) GetTimeline(ctx context.Context, userID int64) ([]dbmysql.Content, []string, error) {
+	// Step 1: Get friend IDs
+	friendResp, err := s.UserClient.ListFriends(ctx, &userpb.UserID{UserId: userID})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch friends: %w", err)
+	}
+
+	userIDs := []int64{userID}
+	for _, f := range friendResp.Friends {
+		userIDs = append(userIDs, f.UserId)
+	}
+
+	// Step 2: Collect content
+	var allContent []dbmysql.Content
+	var allURLs []string
+
+	for _, uid := range userIDs {
+		contentList, err := s.contentRepo.ListUserContent(ctx, uid)
+		if err != nil {
+			continue
+		}
+		for _, c := range contentList {
+			allContent = append(allContent, c)
+
+			if c.MediaRefID != nil {
+				mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
+				if err == nil {
+					allURLs = append(allURLs, GetMediaURL(mediaMeta.FilePath))
+				} else {
+					allURLs = append(allURLs, "")
+				}
+			} else {
+				allURLs = append(allURLs, "")
+			}
+		}
+	}
+
+	// Step 3: Sort
+	sort.SliceStable(allContent, func(i, j int) bool {
+		return allContent[i].CreatedAt.After(allContent[j].CreatedAt)
+	})
+
+	return allContent, allURLs, nil
+}
+
+func (s *FeedService) GetUserContent(ctx context.Context, requesterID, targetUserID int64) ([]dbmysql.Content, []string, error) {
+	// Step 1: Fetch all content
+	allContent, err := s.contentRepo.ListUserContent(ctx, targetUserID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Step 2: Self view
+	if requesterID == targetUserID {
+		var urls []string
+		for _, c := range allContent {
+			if c.MediaRefID != nil {
+				mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
+				if err == nil {
+					urls = append(urls, GetMediaURL(mediaMeta.FilePath))
+				} else {
+					urls = append(urls, "")
+				}
+			} else {
+				urls = append(urls, "")
+			}
+		}
+		return allContent, urls, nil
+	}
+
+	// Step 3: Friendship check
+	friendResp, err := s.UserClient.ListFriends(ctx, &userpb.UserID{UserId: targetUserID})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch friends: %w", err)
+	}
+
+	isFriend := false
+	for _, f := range friendResp.Friends {
+		if f.UserId == requesterID {
+			isFriend = true
+			break
+		}
+	}
+
+	// Step 4: Filter + media URLs
+	var filtered []dbmysql.Content
+	var mediaURLs []string
+
+	for _, c := range allContent {
+		if c.Privacy == "public" || (c.Privacy == "friends" && isFriend) {
+			filtered = append(filtered, c)
+
+			if c.MediaRefID != nil {
+				mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
+				if err == nil {
+					mediaURLs = append(mediaURLs, GetMediaURL(mediaMeta.FilePath))
+				} else {
+					mediaURLs = append(mediaURLs, "")
+				}
+			} else {
+				mediaURLs = append(mediaURLs, "")
+			}
+		}
+	}
+
+	return filtered, mediaURLs, nil
 }
