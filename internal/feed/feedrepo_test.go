@@ -3,8 +3,9 @@ package feed
 import (
 	"GoSocial/internal/dbmongo"
 	"GoSocial/internal/dbmysql"
+	//feed "GoSocial/internal/feed"
 	"context"
-	"fmt"
+	//"fmt"
 	"testing"
 	"time"
 
@@ -18,40 +19,26 @@ var (
 	db         *gorm.DB
 	gridClient *dbmongo.GridFSClient
 	repo       *FeedRepository
-	setupErr   error
 )
 
-func NewMySQLConnection(user, password, dbname string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s?parseTime=true", user, password, dbname)
-	return gorm.Open(mysql.Open(dsn), &gorm.Config{})
-}
+func setup(t *testing.T) {
+	var err error
 
-func initTestRepo() {
-	if db != nil && gridClient != nil && repo != nil {
-		return // already initialized
-	}
-
-	// MySQL
-	db, setupErr = NewMySQLConnection("root", "root", "gosocial_test")
-	if setupErr != nil {
-		return
+	db, err = gorm.Open(mysql.Open("root:root@tcp(localhost:3306)/gosocial_test?parseTime=true"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("Failed to connect to MySQL: %v", err)
 	}
 	_ = db.AutoMigrate(&dbmysql.Content{}, &dbmysql.MediaRef{}, &dbmysql.Reaction{})
 
-	// Mongo
 	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
-		setupErr = err
-		return
+		t.Fatalf("Failed to connect to MongoDB: %v", err)
+	}
+	gridClient, err = dbmongo.NewGridFSClient(mongoClient.Database("gosocial_test"))
+	if err != nil {
+		t.Fatalf("Failed to create GridFS client: %v", err)
 	}
 
-	mongoDB := mongoClient.Database("gosocial_test")
-	gridClient, setupErr = dbmongo.NewGridFSClient(mongoDB)
-	if setupErr != nil {
-		return
-	}
-
-	// Final repo
 	repo = NewFeedRepository(db, gridClient)
 }
 
@@ -59,17 +46,13 @@ func ptr(s string) *string {
 	return &s
 }
 
-func TestCreateAndGetContent(t *testing.T) {
-	initTestRepo()
-	if setupErr != nil {
-		t.Fatalf("setup failed: %v", setupErr)
-	}
-
+func TestContentCRUD(t *testing.T) {
+	setup(t)
 	now := time.Now()
 	content := &dbmysql.Content{
 		AuthorID:    1,
 		Type:        "POST",
-		TextContent: ptr("This is a test post"),
+		TextContent: ptr("Sample post"),
 		Privacy:     "public",
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -84,113 +67,104 @@ func TestCreateAndGetContent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetContentByID failed: %v", err)
 	}
-	if got.AuthorID != content.AuthorID || got.TextContent == nil || *got.TextContent != *content.TextContent {
-		t.Errorf("Expected %+v, got %+v", content, got)
-	}
-}
-
-func TestListUserContent(t *testing.T) {
-	initTestRepo()
-	if setupErr != nil {
-		t.Fatalf("setup failed: %v", setupErr)
+	if got.TextContent == nil || *got.TextContent != *content.TextContent {
+		t.Errorf("TextContent mismatch")
 	}
 
-	ctx := context.Background()
-	contents, err := repo.ListUserContent(ctx, 1)
+	list, err := repo.ListUserContent(context.Background(), content.AuthorID)
 	if err != nil {
 		t.Fatalf("ListUserContent failed: %v", err)
 	}
-	if len(contents) == 0 {
-		t.Log("No user content yet. Might be empty.")
-	}
-}
-
-func TestDeleteContent(t *testing.T) {
-	initTestRepo()
-	if setupErr != nil {
-		t.Fatalf("setup failed: %v", setupErr)
+	if len(list) == 0 {
+		t.Error("Expected at least one content")
 	}
 
-	ctx := context.Background()
-	content := &dbmysql.Content{
-		AuthorID:    1,
-		Type:        "POST",
-		TextContent: ptr("Delete this"),
-		Privacy:     "public",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-	_ = repo.CreateContent(ctx, content)
-
-	err := repo.DeleteContent(ctx, content.ContentID)
+	err = repo.DeleteContent(context.Background(), content.ContentID)
 	if err != nil {
 		t.Fatalf("DeleteContent failed: %v", err)
 	}
 }
 
-func TestCreateAndGetMediaRef(t *testing.T) {
-	initTestRepo()
-	if setupErr != nil {
-		t.Fatalf("setup failed: %v", setupErr)
-	}
-
-	ctx := context.Background()
+func TestMediaRefCRUD(t *testing.T) {
+	setup(t)
 	media := &dbmysql.MediaRef{
 		Type:       "image",
 		FileName:   "test.png",
 		UploadedBy: 1,
 		UploadedAt: time.Now(),
-		SizeBytes:  1024,
 	}
-	data := []byte("This is a test file content")
+	data := []byte("sample content")
 
-	err := repo.CreateMediaRef(ctx, media, data)
+	err := repo.CreateMediaRef(context.Background(), media, data)
 	if err != nil {
 		t.Fatalf("CreateMediaRef failed: %v", err)
 	}
 
-	gotMeta, gotData, err := repo.GetMediaRefByID(ctx, media.MediaRefID)
+	meta, fetchedData, err := repo.GetMediaRefByID(context.Background(), media.MediaRefID)
 	if err != nil {
 		t.Fatalf("GetMediaRefByID failed: %v", err)
 	}
-
-	if gotMeta.FileName != media.FileName {
-		t.Errorf("Expected FileName %s, got %s", media.FileName, gotMeta.FileName)
+	if meta.FileName != media.FileName || string(fetchedData) != string(data) {
+		t.Errorf("Mismatch in media data")
 	}
-	if string(gotData) != string(data) {
-		t.Errorf("Expected file content %q, got %q", string(data), string(gotData))
+
+	err = repo.DeleteMedia(context.Background(), media.MediaRefID)
+	if err != nil {
+		t.Fatalf("DeleteMedia failed: %v", err)
 	}
 }
 
-func TestAddGetDeleteReaction(t *testing.T) {
-	initTestRepo()
-	if setupErr != nil {
-		t.Fatalf("setup failed: %v", setupErr)
-	}
-
-	ctx := context.Background()
+func TestReactionFlow(t *testing.T) {
+	setup(t)
 	reaction := &dbmysql.Reaction{
-		UserID:    1,
+		UserID:    2,
 		ContentID: 1,
-		Type:      "like",
+		Type:      "love",
 		CreatedAt: time.Now(),
 	}
 
-	err := repo.AddReaction(ctx, reaction)
+	err := repo.AddReaction(context.Background(), reaction)
 	if err != nil {
 		t.Fatalf("AddReaction failed: %v", err)
 	}
 
-	list, err := repo.GetReactionsForContent(ctx, 1)
+	list, err := repo.GetReactionsForContent(context.Background(), reaction.ContentID)
 	if err != nil {
 		t.Fatalf("GetReactionsForContent failed: %v", err)
 	}
 	if len(list) == 0 {
-		t.Errorf("Expected at least one reaction")
+		t.Error("Expected reaction")
 	}
 
-	err = repo.DeleteReaction(ctx, 1, 1)
+	err = repo.DeleteReaction(context.Background(), reaction.UserID, reaction.ContentID)
 	if err != nil {
 		t.Fatalf("DeleteReaction failed: %v", err)
+	}
+}
+
+func TestListExpiredStories(t *testing.T) {
+	setup(t)
+	expired := time.Now().Add(-1 * time.Hour)
+	content := &dbmysql.Content{
+		AuthorID:    3,
+		Type:        "STORY",
+		TextContent: ptr("expired story"),
+		Privacy:     "public",
+		Expiration:  &expired,
+		CreatedAt:   time.Now().Add(-2 * time.Hour),
+		UpdatedAt:   time.Now().Add(-2 * time.Hour),
+	}
+
+	err := repo.CreateContent(context.Background(), content)
+	if err != nil {
+		t.Fatalf("CreateContent for story failed: %v", err)
+	}
+
+	list, err := repo.ListExpiredStories(context.Background(), time.Now())
+	if err != nil {
+		t.Fatalf("ListExpiredStories failed: %v", err)
+	}
+	if len(list) == 0 {
+		t.Error("Expected expired stories, got none")
 	}
 }

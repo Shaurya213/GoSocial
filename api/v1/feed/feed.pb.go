@@ -842,27 +842,27 @@ func (x *FeedResponse) GetMessage() string {
 	return ""
 }
 
-type StatusResponse struct {
+type FeedStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StatusResponse) Reset() {
-	*x = StatusResponse{}
+func (x *FeedStatusResponse) Reset() {
+	*x = FeedStatusResponse{}
 	mi := &file_api_v1_feed_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StatusResponse) String() string {
+func (x *FeedStatusResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StatusResponse) ProtoMessage() {}
+func (*FeedStatusResponse) ProtoMessage() {}
 
-func (x *StatusResponse) ProtoReflect() protoreflect.Message {
+func (x *FeedStatusResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_api_v1_feed_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -874,12 +874,12 @@ func (x *StatusResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StatusResponse.ProtoReflect.Descriptor instead.
-func (*StatusResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use FeedStatusResponse.ProtoReflect.Descriptor instead.
+func (*FeedStatusResponse) Descriptor() ([]byte, []int) {
 	return file_api_v1_feed_proto_rawDescGZIP(), []int{13}
 }
 
-func (x *StatusResponse) GetMessage() string {
+func (x *FeedStatusResponse) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
@@ -1050,7 +1050,7 @@ var File_api_v1_feed_proto protoreflect.FileDescriptor
 
 const file_api_v1_feed_proto_rawDesc = "" +
 	"\n" +
-	"\x11api/v1/feed.proto\x12\x06api.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"!\n" +
+	"\x11api/v1/feed.proto\x12\vapi.v1.feed\x1a\x1fgoogle/protobuf/timestamp.proto\"!\n" +
 	"\x06UserID\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\"*\n" +
 	"\tContentID\x12\x1d\n" +
@@ -1104,9 +1104,9 @@ const file_api_v1_feed_proto_rawDesc = "" +
 	"content_id\x18\x03 \x01(\x03R\tcontentId\x12\x12\n" +
 	"\x04type\x18\x04 \x01(\tR\x04type\x129\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\">\n" +
-	"\fReactionList\x12.\n" +
-	"\treactions\x18\x01 \x03(\v2\x10.api.v1.ReactionR\treactions\"\xe7\x01\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"C\n" +
+	"\fReactionList\x123\n" +
+	"\treactions\x18\x01 \x03(\v2\x15.api.v1.feed.ReactionR\treactions\"\xe7\x01\n" +
 	"\x0fTimelineContent\x12\x1d\n" +
 	"\n" +
 	"content_id\x18\x01 \x01(\x03R\tcontentId\x12\x1b\n" +
@@ -1116,15 +1116,15 @@ const file_api_v1_feed_proto_rawDesc = "" +
 	"\tmedia_url\x18\x05 \x01(\tR\bmediaUrl\x12\x18\n" +
 	"\aprivacy\x18\x06 \x01(\tR\aprivacy\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"G\n" +
-	"\x10TimelineResponse\x123\n" +
-	"\bcontents\x18\x01 \x03(\v2\x17.api.v1.TimelineContentR\bcontents\"d\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"L\n" +
+	"\x10TimelineResponse\x128\n" +
+	"\bcontents\x18\x01 \x03(\v2\x1c.api.v1.feed.TimelineContentR\bcontents\"d\n" +
 	"\fFeedResponse\x12\x1d\n" +
 	"\n" +
 	"content_id\x18\x01 \x01(\x03R\tcontentId\x12\x1b\n" +
 	"\tmedia_url\x18\x02 \x01(\tR\bmediaUrl\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\"*\n" +
-	"\x0eStatusResponse\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\".\n" +
+	"\x12FeedStatusResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"\xaa\x01\n" +
 	"\rMediaResponse\x12 \n" +
 	"\fmedia_ref_id\x18\x01 \x01(\x03R\n" +
@@ -1142,22 +1142,22 @@ const file_api_v1_feed_proto_rawDesc = "" +
 	"\ftext_content\x18\x04 \x01(\tR\vtextContent\x12\x1b\n" +
 	"\tmedia_url\x18\x05 \x01(\tR\bmediaUrl\x12\x18\n" +
 	"\aprivacy\x18\x06 \x01(\tR\aprivacy\x12\x1c\n" +
-	"\ttimestamp\x18\a \x01(\tR\ttimestamp2\xc1\x05\n" +
-	"\vFeedService\x12=\n" +
+	"\ttimestamp\x18\a \x01(\tR\ttimestamp2\xbb\x06\n" +
+	"\vFeedService\x12G\n" +
 	"\n" +
-	"CreatePost\x12\x19.api.v1.CreatePostRequest\x1a\x14.api.v1.FeedResponse\x12=\n" +
+	"CreatePost\x12\x1e.api.v1.feed.CreatePostRequest\x1a\x19.api.v1.feed.FeedResponse\x12G\n" +
 	"\n" +
-	"CreateReel\x12\x19.api.v1.CreateReelRequest\x1a\x14.api.v1.FeedResponse\x12?\n" +
-	"\vCreateStory\x12\x1a.api.v1.CreateStoryRequest\x1a\x14.api.v1.FeedResponse\x12A\n" +
-	"\x0eReactToContent\x12\x17.api.v1.ReactionRequest\x1a\x16.api.v1.StatusResponse\x127\n" +
-	"\fGetReactions\x12\x11.api.v1.ContentID\x1a\x14.api.v1.ReactionList\x12G\n" +
-	"\x0eDeleteReaction\x12\x1d.api.v1.DeleteReactionRequest\x1a\x16.api.v1.StatusResponse\x127\n" +
-	"\vGetTimeline\x12\x0e.api.v1.UserID\x1a\x18.api.v1.TimelineResponse\x12I\n" +
-	"\x0eGetUserContent\x12\x1d.api.v1.GetUserContentRequest\x1a\x18.api.v1.TimelineResponse\x127\n" +
-	"\vGetMediaRef\x12\x11.api.v1.ContentID\x1a\x15.api.v1.MediaResponse\x125\n" +
+	"CreateReel\x12\x1e.api.v1.feed.CreateReelRequest\x1a\x19.api.v1.feed.FeedResponse\x12I\n" +
+	"\vCreateStory\x12\x1f.api.v1.feed.CreateStoryRequest\x1a\x19.api.v1.feed.FeedResponse\x12O\n" +
+	"\x0eReactToContent\x12\x1c.api.v1.feed.ReactionRequest\x1a\x1f.api.v1.feed.FeedStatusResponse\x12A\n" +
+	"\fGetReactions\x12\x16.api.v1.feed.ContentID\x1a\x19.api.v1.feed.ReactionList\x12U\n" +
+	"\x0eDeleteReaction\x12\".api.v1.feed.DeleteReactionRequest\x1a\x1f.api.v1.feed.FeedStatusResponse\x12A\n" +
+	"\vGetTimeline\x12\x13.api.v1.feed.UserID\x1a\x1d.api.v1.feed.TimelineResponse\x12S\n" +
+	"\x0eGetUserContent\x12\".api.v1.feed.GetUserContentRequest\x1a\x1d.api.v1.feed.TimelineResponse\x12A\n" +
+	"\vGetMediaRef\x12\x16.api.v1.feed.ContentID\x1a\x1a.api.v1.feed.MediaResponse\x12?\n" +
 	"\n" +
-	"GetContent\x12\x11.api.v1.ContentID\x1a\x14.api.v1.FeedResponse\x12:\n" +
-	"\rDeleteContent\x12\x11.api.v1.ContentID\x1a\x16.api.v1.StatusResponseB\x12Z\x10api/v1/feed;feedb\x06proto3"
+	"GetContent\x12\x16.api.v1.feed.ContentID\x1a\x19.api.v1.feed.FeedResponse\x12H\n" +
+	"\rDeleteContent\x12\x16.api.v1.feed.ContentID\x1a\x1f.api.v1.feed.FeedStatusResponseB\x12Z\x10api/v1/feed;feedb\x06proto3"
 
 var (
 	file_api_v1_feed_proto_rawDescOnce sync.Once
@@ -1173,52 +1173,52 @@ func file_api_v1_feed_proto_rawDescGZIP() []byte {
 
 var file_api_v1_feed_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_api_v1_feed_proto_goTypes = []any{
-	(*UserID)(nil),                // 0: api.v1.UserID
-	(*ContentID)(nil),             // 1: api.v1.ContentID
-	(*GetUserContentRequest)(nil), // 2: api.v1.GetUserContentRequest
-	(*CreatePostRequest)(nil),     // 3: api.v1.CreatePostRequest
-	(*CreateReelRequest)(nil),     // 4: api.v1.CreateReelRequest
-	(*CreateStoryRequest)(nil),    // 5: api.v1.CreateStoryRequest
-	(*ReactionRequest)(nil),       // 6: api.v1.ReactionRequest
-	(*DeleteReactionRequest)(nil), // 7: api.v1.DeleteReactionRequest
-	(*Reaction)(nil),              // 8: api.v1.Reaction
-	(*ReactionList)(nil),          // 9: api.v1.ReactionList
-	(*TimelineContent)(nil),       // 10: api.v1.TimelineContent
-	(*TimelineResponse)(nil),      // 11: api.v1.TimelineResponse
-	(*FeedResponse)(nil),          // 12: api.v1.FeedResponse
-	(*StatusResponse)(nil),        // 13: api.v1.StatusResponse
-	(*MediaResponse)(nil),         // 14: api.v1.MediaResponse
-	(*Content)(nil),               // 15: api.v1.Content
+	(*UserID)(nil),                // 0: api.v1.feed.UserID
+	(*ContentID)(nil),             // 1: api.v1.feed.ContentID
+	(*GetUserContentRequest)(nil), // 2: api.v1.feed.GetUserContentRequest
+	(*CreatePostRequest)(nil),     // 3: api.v1.feed.CreatePostRequest
+	(*CreateReelRequest)(nil),     // 4: api.v1.feed.CreateReelRequest
+	(*CreateStoryRequest)(nil),    // 5: api.v1.feed.CreateStoryRequest
+	(*ReactionRequest)(nil),       // 6: api.v1.feed.ReactionRequest
+	(*DeleteReactionRequest)(nil), // 7: api.v1.feed.DeleteReactionRequest
+	(*Reaction)(nil),              // 8: api.v1.feed.Reaction
+	(*ReactionList)(nil),          // 9: api.v1.feed.ReactionList
+	(*TimelineContent)(nil),       // 10: api.v1.feed.TimelineContent
+	(*TimelineResponse)(nil),      // 11: api.v1.feed.TimelineResponse
+	(*FeedResponse)(nil),          // 12: api.v1.feed.FeedResponse
+	(*FeedStatusResponse)(nil),    // 13: api.v1.feed.FeedStatusResponse
+	(*MediaResponse)(nil),         // 14: api.v1.feed.MediaResponse
+	(*Content)(nil),               // 15: api.v1.feed.Content
 	(*timestamppb.Timestamp)(nil), // 16: google.protobuf.Timestamp
 }
 var file_api_v1_feed_proto_depIdxs = []int32{
-	16, // 0: api.v1.Reaction.created_at:type_name -> google.protobuf.Timestamp
-	8,  // 1: api.v1.ReactionList.reactions:type_name -> api.v1.Reaction
-	16, // 2: api.v1.TimelineContent.created_at:type_name -> google.protobuf.Timestamp
-	10, // 3: api.v1.TimelineResponse.contents:type_name -> api.v1.TimelineContent
-	16, // 4: api.v1.MediaResponse.uploaded_at:type_name -> google.protobuf.Timestamp
-	3,  // 5: api.v1.FeedService.CreatePost:input_type -> api.v1.CreatePostRequest
-	4,  // 6: api.v1.FeedService.CreateReel:input_type -> api.v1.CreateReelRequest
-	5,  // 7: api.v1.FeedService.CreateStory:input_type -> api.v1.CreateStoryRequest
-	6,  // 8: api.v1.FeedService.ReactToContent:input_type -> api.v1.ReactionRequest
-	1,  // 9: api.v1.FeedService.GetReactions:input_type -> api.v1.ContentID
-	7,  // 10: api.v1.FeedService.DeleteReaction:input_type -> api.v1.DeleteReactionRequest
-	0,  // 11: api.v1.FeedService.GetTimeline:input_type -> api.v1.UserID
-	2,  // 12: api.v1.FeedService.GetUserContent:input_type -> api.v1.GetUserContentRequest
-	1,  // 13: api.v1.FeedService.GetMediaRef:input_type -> api.v1.ContentID
-	1,  // 14: api.v1.FeedService.GetContent:input_type -> api.v1.ContentID
-	1,  // 15: api.v1.FeedService.DeleteContent:input_type -> api.v1.ContentID
-	12, // 16: api.v1.FeedService.CreatePost:output_type -> api.v1.FeedResponse
-	12, // 17: api.v1.FeedService.CreateReel:output_type -> api.v1.FeedResponse
-	12, // 18: api.v1.FeedService.CreateStory:output_type -> api.v1.FeedResponse
-	13, // 19: api.v1.FeedService.ReactToContent:output_type -> api.v1.StatusResponse
-	9,  // 20: api.v1.FeedService.GetReactions:output_type -> api.v1.ReactionList
-	13, // 21: api.v1.FeedService.DeleteReaction:output_type -> api.v1.StatusResponse
-	11, // 22: api.v1.FeedService.GetTimeline:output_type -> api.v1.TimelineResponse
-	11, // 23: api.v1.FeedService.GetUserContent:output_type -> api.v1.TimelineResponse
-	14, // 24: api.v1.FeedService.GetMediaRef:output_type -> api.v1.MediaResponse
-	12, // 25: api.v1.FeedService.GetContent:output_type -> api.v1.FeedResponse
-	13, // 26: api.v1.FeedService.DeleteContent:output_type -> api.v1.StatusResponse
+	16, // 0: api.v1.feed.Reaction.created_at:type_name -> google.protobuf.Timestamp
+	8,  // 1: api.v1.feed.ReactionList.reactions:type_name -> api.v1.feed.Reaction
+	16, // 2: api.v1.feed.TimelineContent.created_at:type_name -> google.protobuf.Timestamp
+	10, // 3: api.v1.feed.TimelineResponse.contents:type_name -> api.v1.feed.TimelineContent
+	16, // 4: api.v1.feed.MediaResponse.uploaded_at:type_name -> google.protobuf.Timestamp
+	3,  // 5: api.v1.feed.FeedService.CreatePost:input_type -> api.v1.feed.CreatePostRequest
+	4,  // 6: api.v1.feed.FeedService.CreateReel:input_type -> api.v1.feed.CreateReelRequest
+	5,  // 7: api.v1.feed.FeedService.CreateStory:input_type -> api.v1.feed.CreateStoryRequest
+	6,  // 8: api.v1.feed.FeedService.ReactToContent:input_type -> api.v1.feed.ReactionRequest
+	1,  // 9: api.v1.feed.FeedService.GetReactions:input_type -> api.v1.feed.ContentID
+	7,  // 10: api.v1.feed.FeedService.DeleteReaction:input_type -> api.v1.feed.DeleteReactionRequest
+	0,  // 11: api.v1.feed.FeedService.GetTimeline:input_type -> api.v1.feed.UserID
+	2,  // 12: api.v1.feed.FeedService.GetUserContent:input_type -> api.v1.feed.GetUserContentRequest
+	1,  // 13: api.v1.feed.FeedService.GetMediaRef:input_type -> api.v1.feed.ContentID
+	1,  // 14: api.v1.feed.FeedService.GetContent:input_type -> api.v1.feed.ContentID
+	1,  // 15: api.v1.feed.FeedService.DeleteContent:input_type -> api.v1.feed.ContentID
+	12, // 16: api.v1.feed.FeedService.CreatePost:output_type -> api.v1.feed.FeedResponse
+	12, // 17: api.v1.feed.FeedService.CreateReel:output_type -> api.v1.feed.FeedResponse
+	12, // 18: api.v1.feed.FeedService.CreateStory:output_type -> api.v1.feed.FeedResponse
+	13, // 19: api.v1.feed.FeedService.ReactToContent:output_type -> api.v1.feed.FeedStatusResponse
+	9,  // 20: api.v1.feed.FeedService.GetReactions:output_type -> api.v1.feed.ReactionList
+	13, // 21: api.v1.feed.FeedService.DeleteReaction:output_type -> api.v1.feed.FeedStatusResponse
+	11, // 22: api.v1.feed.FeedService.GetTimeline:output_type -> api.v1.feed.TimelineResponse
+	11, // 23: api.v1.feed.FeedService.GetUserContent:output_type -> api.v1.feed.TimelineResponse
+	14, // 24: api.v1.feed.FeedService.GetMediaRef:output_type -> api.v1.feed.MediaResponse
+	12, // 25: api.v1.feed.FeedService.GetContent:output_type -> api.v1.feed.FeedResponse
+	13, // 26: api.v1.feed.FeedService.DeleteContent:output_type -> api.v1.feed.FeedStatusResponse
 	16, // [16:27] is the sub-list for method output_type
 	5,  // [5:16] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name

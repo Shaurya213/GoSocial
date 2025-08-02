@@ -3,7 +3,7 @@ package dbmysql
 import "time"
 
 type MediaRef struct {
-	MediaRefID int64     `gorm:"primaryKey;column:media_ref_id AUTO_INCREMENT"`
+	MediaRefID int64     `gorm:"primaryKey;autoIncrement;column:media_ref_id"`
 	Type       string    `gorm:"type:ENUM('image','video');column:type"` // media type
 	FilePath   string    `gorm:"column:file_path"`                       // GridFS ObjectID or S3 path
 	FileName   string    `gorm:"column:file_name"`                       // original uploaded name

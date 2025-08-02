@@ -3,7 +3,7 @@ package dbmysql
 import "time"
 
 type Content struct {
-	ContentID   int64      `gorm:"primaryKey;column:content_id AUTO_INCREMENT"`
+	ContentID   int64      `gorm:"primaryKey;autoIncrement;column:content_id"`
 	AuthorID    int64      `gorm:"column:author_id"`
 	Type        string     `gorm:"type:ENUM('POST','STORY','REEL');column:type"`
 	TextContent *string    `gorm:"column:text_content"`

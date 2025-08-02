@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package api.v1;
+package api.v1.feed;
 option go_package = "api/v1/feed;feed";
 
 import "google/protobuf/timestamp.proto";
@@ -11,9 +11,9 @@ service FeedService {
   rpc CreateReel(CreateReelRequest) returns (FeedResponse);
   rpc CreateStory(CreateStoryRequest) returns (FeedResponse);
 
-  rpc ReactToContent(ReactionRequest) returns (StatusResponse);
+  rpc ReactToContent(ReactionRequest) returns (FeedStatusResponse);
   rpc GetReactions(ContentID) returns (ReactionList);
-  rpc DeleteReaction(DeleteReactionRequest) returns (StatusResponse);
+  rpc DeleteReaction(DeleteReactionRequest) returns (FeedStatusResponse);
 
   rpc GetTimeline(UserID) returns (TimelineResponse);
   rpc GetUserContent(GetUserContentRequest) returns (TimelineResponse);
@@ -21,7 +21,7 @@ service FeedService {
   rpc GetMediaRef(ContentID) returns (MediaResponse);
 
   rpc GetContent(ContentID) returns (FeedResponse);
-  rpc DeleteContent(ContentID) returns (StatusResponse);
+  rpc DeleteContent(ContentID) returns (FeedStatusResponse);
 }
 
 // ---------- Messages ----------
@@ -109,7 +109,7 @@ message FeedResponse {
   string message = 3;
 }
 
-message StatusResponse {
+message FeedStatusResponse {
   string message = 1;
 }
 
