@@ -2,11 +2,13 @@ package feed
 
 import (
 	"context"
-	"time"
+	//"time"
 
 	feedpb "GoSocial/api/v1/feed" // alias the generated package
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type FeedHandlers struct {
@@ -274,7 +276,7 @@ func (h *FeedHandlers) GetTimeline(ctx context.Context, req *feedpb.UserID) (*fe
 			Text:      safeString(content.TextContent),
 			MediaUrl:  urls[i],
 			Privacy:   content.Privacy,
-			CreatedAt: content.CreatedAt.String(), // or .String()
+			CreatedAt: timestamppb.New(content.CreatedAt),
 		})
 	}
 
@@ -294,17 +296,17 @@ func (h *FeedHandlers) GetUserContent(ctx context.Context, req *feedpb.GetUserCo
 		return nil, status.Errorf(codes.Internal, "failed to get user content: %v", err)
 	}
 
-	// Convert contents to protobuf format
-	var pbContents []*feedpb.Content
+	var pbContents []*feedpb.TimelineContent
+
 	for i, content := range contents {
-		pbContents = append(pbContents, &feedpb.Content{
-			ContentId:   content.ContentID,
-			TextContent: *content.TextContent,
-			MediaUrl:    urls[i],
-			AuthorId:    content.AuthorID,
-			Type:        content.Type,
-			Privacy:     content.Privacy,
-			Timestamp:   content.UpdatedAt.String(),
+		pbContents = append(pbContents, &feedpb.TimelineContent{
+			ContentId: content.ContentID,
+			AuthorId:  content.AuthorID,
+			Type:      content.Type,
+			Text:      safeString(content.TextContent),
+			MediaUrl:  urls[i],
+			Privacy:   content.Privacy,
+			CreatedAt: timestamppb.New(content.CreatedAt),
 		})
 	}
 
