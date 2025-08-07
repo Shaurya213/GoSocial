@@ -49,7 +49,7 @@ func InitDatabase(config DatabaseConfig) (*gorm.DB, error) {
 		&dbmysql.User{},
 		&dbmysql.Friend{},
 		&dbmysql.Device{},
-	); err != nil {
+	); err != nil {  
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
