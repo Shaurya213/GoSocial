@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package api.v1;
+option go_package = "./api/v1/user";
+
+// --------------- User Registration & Auth ---------------
+message RegisterRequest {
+    string handle = 1;              
+    string email = 2;            
+    string password = 3;            
+    string phone = 4;               
+    string profile_details = 5;     
+}
+
+message LoginRequest {
+    string handle = 1;
+    string password = 2;
+}
+
+message AuthResponse {
+    string token = 1;              
+    string message = 2;             
+    int64 user_id = 3;             
+}
+
+// --------------- User Profile ---------------------------
+message GetProfileRequest {
+    int64 user_id = 1;
+}
+
+message ProfileResponse {
+    int64 user_id = 1;
+    string handle = 2;
+    string email = 3;
+    string phone = 4;
+    string profile_details = 5;
+    string status = 6;
+    string created_at = 7;
+    string updated_at = 8;
+}
+
+// For updating any part of the profile
+message UpdateProfileRequest {
+    int64 user_id = 1;
+    string email = 2;
+    string phone = 3;
+    string profile_details = 4;
+}
+
+// --------------- Friendship System ----------------------
+message FriendRequest {
+    int64 user_id = 1;         
+    int64 target_user_id = 2;  
+}
+
+message FriendAcceptRequest {
+    int64 user_id = 1;         
+    int64 requester_id = 2;   
+}
+
+message UserID {
+    int64 user_id = 1;
+}
+
+message Friend {
+    int64 user_id = 1;
+    string handle = 2;
+    string profile_details = 3;
+    string status = 4;
+    string friendship_date = 5;
+}
+
+message FriendList {
+    repeated Friend friends = 1;
+}
+
+// --------------- Device Registration --------------------
+message DeviceTokenRequest {
+    int64 user_id = 1;
+    string device_token = 2; 
+    string platform = 3;          
+}
+
+message DeviceToken {
+    string device_token = 1;
+    string platform = 2;
+}
+
+message DeviceTokenList {
+    repeated DeviceToken devices = 1;
+}
+
+// --------------- Generic/Status Messages ----------------
+message Empty {}
+
+message StatusResponse {
+    string message = 1;
+    bool success = 2;
+}
+
+// --------------- The User Service API -------------------
+service UserService {
+    // Registration & login
+    rpc Register(RegisterRequest) returns (AuthResponse);
+    rpc Login(LoginRequest) returns (AuthResponse);
+
+    // Profile management (require auth)
+    rpc GetProfile(GetProfileRequest) returns (ProfileResponse);
+    rpc UpdateProfile(UpdateProfileRequest) returns (StatusResponse);
+
+    // Friendships
+    rpc SendFriendRequest(FriendRequest) returns (StatusResponse);
+    rpc AcceptFriendRequest(FriendAcceptRequest) returns (StatusResponse);
+    rpc ListFriends(UserID) returns (FriendList);
+
+    // Devices
+    rpc RegisterDevice(DeviceTokenRequest) returns (StatusResponse);
+    rpc RemoveDevice(DeviceTokenRequest) returns (StatusResponse);
+    rpc GetUserDevices(UserID) returns (DeviceTokenList);
+}
