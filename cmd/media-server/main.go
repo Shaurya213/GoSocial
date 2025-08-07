@@ -16,9 +16,11 @@ func main() {
 
 	// Connect to MongoDB using your existing connection
 	mongoClient, err := dbmongo.NewMongoConnection(cfg)
+
 	if err != nil {
 		log.Fatal("Failed to connect to MongoDB:", err)
 	}
+
 	defer mongoClient.Close(context.Background())
 
 	// Create HTTP server using your existing MediaStorage

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// ChatService defines the interface exposed to the handler layer
+// ChatService defines 
 type ChatService interface {
 	SendMessage(ctx context.Context, msg *dbmysql.Message) (*dbmysql.Message, error)
 	GetMessageHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error)

@@ -51,6 +51,7 @@ func (ms *MediaStorage) UploadFile(ctx context.Context, filename, mimeType, uplo
 	if err != nil {
 		return nil, fmt.Errorf("upload failed: %w", err)
 	}
+
 	defer stream.Close()
 
 	// Copy file content

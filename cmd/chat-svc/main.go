@@ -21,6 +21,7 @@ func main() {
 	cfg := config.LoadConfig()
 	log.Println("Starting Chat Service...")
 	// Initialize all dependencies via Wire
+
 	chatHandler, cleanup, err := di.InitializeChatService()
 	if err != nil {
 		log.Fatalf("Failed to initialize chat service: %v", err)

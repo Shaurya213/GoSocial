@@ -38,7 +38,9 @@ func (h *ChatHandler) SendMessages(ctx context.Context, req *pb.SendMessageReque
 		SenderID: req.SenderId,
 		Content: req.Content,
 	}
+
 	savedMsg, err := h.chatService.SendMessage(ctx, domainMsg)
+
 	if err != nil {
 		return nil, fmt.Errorf( "failed to send Message %v : internal codes : %v", err, codes.Internal )
 	}
