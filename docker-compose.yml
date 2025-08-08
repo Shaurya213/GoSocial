@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   mysql:
     image: mysql:8
@@ -10,12 +12,6 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   mongodb:
     image: mongo:7.0
     container_name: gosocial_mongodb
@@ -28,11 +24,9 @@ services:
       MONGO_INITDB_DATABASE: gosocial
     volumes:
       - mongodb_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+    networks:
+      gosocial_network:
+        ipv4_address: 172.20.0.10
 
   mongo-express:
     image: mongo-express:latest
@@ -41,14 +35,17 @@ services:
     ports:
       - "8081:8081"
     environment:
-      # Prefer single URL over piecemeal host/creds and avoid static IPs
-      ME_CONFIG_MONGODB_URL: mongodb://admin:admin123@mongodb:27017/?authSource=admin
-      ME_CONFIG_BASICAUTH: "true"
+      ME_CONFIG_MONGODB_SERVER: 172.20.0.10  # Use MongoDB's static IP
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin123
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: admin123
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
+    networks:
+      gosocial_network:
+        ipv4_address: 172.20.0.11
 
   media-server:
     build:
@@ -59,8 +56,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # point to the service name, not a static IP
-      MONGO_HOST: mongodb
+      MONGO_HOST: 172.20.0.10
       MONGO_PORT: 27017
       MONGO_USERNAME: admin
       MONGO_PASSWORD: admin123
@@ -68,11 +64,20 @@ services:
       MEDIA_SERVER_PORT: 8080
       MEDIA_BASE_URL: http://localhost:8080/media
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
+    networks:
+      gosocial_network:
+        ipv4_address: 172.20.0.20
 
 volumes:
-  mysql_data:
-    driver: local
   mongodb_data:
     driver: local
+
+networks:
+  gosocial_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
