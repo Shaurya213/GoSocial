@@ -67,23 +67,36 @@ func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistory
 	}
 
 	protoMessages := make([]*pb.ChatMessage, 0, len(domainMessages))
-	start := int(req.Offset)
-	end := start + int(req.Limit)
 
+	// ✅ FIX: Safe bounds checking for pagination
+	start := int(req.Offset)
+	limit := int(req.Limit)
+
+	// Handle negative or invalid values
+	if start < 0 {
+		start = 0
+	}
+	if limit <= 0 {
+		return &pb.GetChatHistoryResponse{Messages: []*pb.ChatMessage{}}, nil
+	}
+
+	// Check if start is beyond available messages
 	if start >= len(domainMessages) {
 		return &pb.GetChatHistoryResponse{Messages: []*pb.ChatMessage{}}, nil
 	}
 
+	end := start + limit
 	if end > len(domainMessages) {
-		end = len(domainMessages) 
+		end = len(domainMessages)
 	}
 
+	// Now safe to slice
 	for _, msg := range domainMessages[start:end] {
 		protoMessage := &pb.ChatMessage{
 			ConversationId: msg.ConversationID,
-			SenderId: msg.SenderID,
-			Content: msg.Content,
-			SentAt: timestamppb.New(msg.SentAt),
+			SenderId:       msg.SenderID,
+			Content:        msg.Content,
+			SentAt:         timestamppb.New(msg.SentAt),
 		}
 		protoMessages = append(protoMessages, protoMessage)
 	}
@@ -92,6 +105,7 @@ func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistory
 		Messages: protoMessages,
 	}, nil
 }
+
 
 func (h *ChatHandler) StreamMessages(stream pb.ChatService_StreamMessagesServer) error {
 	var conversationID string
