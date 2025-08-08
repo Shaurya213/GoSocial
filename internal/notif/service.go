@@ -110,13 +110,7 @@ type NotificationService struct {
 	subject      *NotificationSubject
 }
 
-func NewNotificationService(
-	config *config.Config,
-	repo common.NotificationRepository,
-	deviceRepo common.DeviceRepository,
-	fcmClient *messaging.Client,
-	emailService common.EmailService,
-) *NotificationService {
+func NewNotificationService(config *config.Config, repo common.NotificationRepository, deviceRepo common.DeviceRepository, fcmClient *messaging.Client, emailService common.EmailService) *NotificationService {
 	service := &NotificationService{
 		config:       config,
 		repo:         repo,
@@ -296,3 +290,5 @@ func (s *NotificationService) Shutdown() {
 	s.subject.Shutdown()
 	log.Println("NotificationService shutdown complete")
 }
+
+var _ NotificationServiceInterface = (*NotificationService)(nil)

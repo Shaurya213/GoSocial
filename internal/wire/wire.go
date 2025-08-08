@@ -21,7 +21,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Application holds all dependencies
 type Application struct {
 	Config  *config.Config
 	DB      *gorm.DB
@@ -29,11 +28,10 @@ type Application struct {
 	Service *notif.NotificationService
 }
 
-// InitializeApplication wires up all dependencies
 func InitializeApplication() (*Application, error) {
 	wire.Build(
 		ProvideConfig,
-		ProvideDatabaseConnection, // Now properly receives config as parameter
+		ProvideDatabaseConnection, //  receives config as parameter
 		dbmysql.NewNotificationRepository,
 		dbmysql.NewDeviceRepository,
 		ProvideFirebaseApp,
@@ -46,7 +44,6 @@ func InitializeApplication() (*Application, error) {
 	return &Application{}, nil
 }
 
-// ProvideConfig creates application configuration
 func ProvideConfig() *config.Config {
 	return &config.Config{
 		Server: config.ServerConfig{
@@ -96,7 +93,6 @@ func ProvideConfig() *config.Config {
 	}
 }
 
-// ✅ FIXED: Now receives config as a parameter instead of calling ProvideConfig()
 func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
 	// Build DSN with proper validation
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -115,10 +111,8 @@ func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Set global db instance
 	dbmysql.SetDB(db)
 
-	// Auto migrate
 	if err := db.AutoMigrate(
 		&dbmysql.Notification{},
 		&dbmysql.Device{},
@@ -129,7 +123,6 @@ func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// ProvideFirebaseApp creates Firebase app instance (can return nil)
 func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
 	if !cfg.Firebase.Enabled {
 		log.Println("Firebase disabled")
@@ -155,7 +148,6 @@ func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
 	return app, nil
 }
 
-// ProvideFirebaseMessaging creates Firebase messaging client (can return nil)
 func ProvideFirebaseMessaging(app *firebase.App) (*messaging.Client, error) {
 	if app == nil {
 		log.Println("Firebase app not available, FCM disabled")
@@ -171,12 +163,10 @@ func ProvideFirebaseMessaging(app *firebase.App) (*messaging.Client, error) {
 	return client, nil
 }
 
-// ProvideEmailService creates email service
 func ProvideEmailService(cfg *config.Config) common.EmailService {
 	return &MockEmailService{}
 }
 
-// MockEmailService implements common.EmailService interface
 type MockEmailService struct{}
 
 func (m *MockEmailService) SendEmail(to, subject, body string) error {
@@ -184,7 +174,6 @@ func (m *MockEmailService) SendEmail(to, subject, body string) error {
 	return nil
 }
 
-// Helper function to get environment variables with defaults
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

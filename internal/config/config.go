@@ -11,23 +11,17 @@ import (
 type Config struct {
 	Server ServerConfig `json:"server"`
 
-	// Database Configuration
 	Database DatabaseConfig `json:"database"`
 
-	// Firebase Configuration
 	Firebase FirebaseConfig `json:"firebase"`
 
-	// Notification Configuration
 	Notification NotificationConfig `json:"notification"`
 
-	// Email Configuration (optional)
 	Email EmailConfig `json:"email"`
 
-	// Logging Configuration
 	Logging LoggingConfig `json:"logging"`
 }
 
-// ServerConfig contains server-related configuration
 type ServerConfig struct {
 	Port         string `json:"port"`
 	Host         string `json:"host"`
@@ -36,7 +30,6 @@ type ServerConfig struct {
 	Environment  string `json:"environment"` // development, staging, production
 }
 
-// DatabaseConfig contains database connection configuration
 type DatabaseConfig struct {
 	Host         string `json:"host"`
 	Port         string `json:"port"`
@@ -47,18 +40,15 @@ type DatabaseConfig struct {
 	MaxOpenConns int    `json:"max_open_conns"`
 	MaxIdleConns int    `json:"max_idle_conns"`
 
-	// Connection string will be built from above values
 	DSN string `json:"-"`
 }
 
-// FirebaseConfig contains Firebase Cloud Messaging configuration
-type FirebaseConfig struct {
+type FirebaseConfig struct { // FirebaseConfig contains Firebase Cloud Messaging configuration
 	ProjectID           string `json:"project_id"`
 	CredentialsFilePath string `json:"credentials_file_path"`
 	Enabled             bool   `json:"enabled"`
 }
 
-// NotificationConfig contains notification system configuration
 type NotificationConfig struct {
 	Workers                int  `json:"workers"`                  // Number of worker goroutines
 	ChannelBufferSize      int  `json:"channel_buffer_size"`      // Channel buffer size
@@ -68,7 +58,6 @@ type NotificationConfig struct {
 	Enabled                bool `json:"enabled"`
 }
 
-// EmailConfig contains email service configuration (optional)
 type EmailConfig struct {
 	SMTPHost  string `json:"smtp_host"`
 	SMTPPort  int    `json:"smtp_port"`
@@ -80,7 +69,6 @@ type EmailConfig struct {
 	UseTLS    bool   `json:"use_tls"`
 }
 
-// LoggingConfig contains logging configuration
 type LoggingConfig struct {
 	Level      string `json:"level"`       // debug, info, warn, error
 	Format     string `json:"format"`      // json, text

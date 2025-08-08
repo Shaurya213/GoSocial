@@ -1,7 +1,7 @@
 package common
 
 import (
-	"context"
+	"context" // provides context for cancellation, deletion, update anything
 	"time"
 )
 
@@ -37,4 +37,11 @@ type DeviceRepository interface {
 
 type EmailService interface {
 	SendEmail(to, subject, body string) error
+}
+
+type EmailData struct {
+	To      []string `json:"to"`
+	Subject string   `json:"subject"`
+	Body    string   `json:"body"`
+	IsHTML  bool     `json:"is_html"`
 }
