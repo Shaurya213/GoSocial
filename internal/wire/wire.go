@@ -46,13 +46,6 @@ func InitializeApplication() (*Application, error) {
 
 func ProvideConfig() *config.Config {
 	return &config.Config{
-		Server: config.ServerConfig{
-			Port:         getEnvOrDefault("SERVER_PORT", "8080"),
-			Host:         getEnvOrDefault("SERVER_HOST", "0.0.0.0"),
-			ReadTimeout:  30,
-			WriteTimeout: 30,
-			Environment:  getEnvOrDefault("ENVIRONMENT", "development"),
-		},
 		Database: config.DatabaseConfig{
 			Host:         getEnvOrDefault("DB_HOST", "192.168.63.59"),
 			Port:         getEnvOrDefault("DB_PORT", "3306"),
