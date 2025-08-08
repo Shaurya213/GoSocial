@@ -2,33 +2,44 @@ package config
 
 import (
 	"fmt"
-<<<<<<< HEAD
-	//     "log"
-	//     "os"
-	//     "strconv"
-	//     "strings"
+
+	"log"
+	"os"
+	"strconv"
+	"strings"
 )
 
 type Config struct {
 	Server ServerConfig `json:"server"`
-
+	MongoDB MongoDBConfig
 	Database DatabaseConfig `json:"database"`
-
 	Firebase FirebaseConfig `json:"firebase"`
-
 	Notification NotificationConfig `json:"notification"`
-
 	Email EmailConfig `json:"email"`
-
 	Logging LoggingConfig `json:"logging"`
+	JWT     JWTConfig
 }
 
+type MongoDBConfig struct {
+	Host     string
+	Port     string
+	Username string
+	Password string
+	Database string
+}
+
+type JWTConfig struct {
+	Secret string
+}
+
+
 type ServerConfig struct {
-	Port         string `json:"port"`
-	Host         string `json:"host"`
-	ReadTimeout  int    `json:"read_timeout"`
-	WriteTimeout int    `json:"write_timeout"`
-	Environment  string `json:"environment"` // development, staging, production
+	ChatServicePort  string
+	UserServicePort  string
+	FeedServicePort  string
+	NotifServicePort string
+	MediaServicePort string
+	MediaBaseURL	 string
 }
 
 type DatabaseConfig struct {
