@@ -108,12 +108,9 @@ func TestNewFCMObserver(t *testing.T) {
 	mockDeviceRepo := &MockDeviceRepositoryForObserver{}
 	var fcmClient *messaging.Client = nil
 
-	// FIXED: Use the actual NewFCMObserver from observers.go
 	observer := NewFCMObserver(fcmClient, mockDeviceRepo)
 
 	assert.NotNil(t, observer)
-	// FIXED: Access fields through the actual FCMObserver struct
-	// Note: These fields are private, so we test behavior instead
 	assert.Equal(t, "fcm_observer", observer.Name())
 }
 
@@ -142,7 +139,6 @@ func TestFCMObserver_Update_ScheduledNotification(t *testing.T) {
 
 	err := observer.Update(event)
 
-	// Should skip FCM for scheduled notifications in the future
 	assert.NoError(t, err)
 }
 
@@ -165,7 +161,6 @@ func TestFCMObserver_Update_NilFCMClient(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// FIXED: This test was failing because FCM client is nil, so it never calls the repository
 func TestFCMObserver_Update_NoActiveDevices(t *testing.T) {
 	mockDeviceRepo := &MockDeviceRepositoryForObserver{}
 	// Create a non-nil FCM client for this test to actually reach the repository call

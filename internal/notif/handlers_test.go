@@ -19,7 +19,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// FIXED: Complete MockNotificationService implementing NotificationServiceInterface
 type MockNotificationServiceForHandler struct {
 	mock.Mock
 }
@@ -58,7 +57,6 @@ func (m *MockNotificationServiceForHandler) Shutdown() {
 	m.Called()
 }
 
-// FIXED: Complete MockDeviceRepository
 type MockDeviceRepositoryForHandler struct {
 	mock.Mock
 }

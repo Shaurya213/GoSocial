@@ -1247,7 +1247,6 @@ func createMockEmailObserver() common.Observer {
 func createMockObserver(name string) *MockTestObserver {
 	mockObserver := &MockTestObserver{}
 	mockObserver.On("Name").Return(name)
-	// FIXED: Add flexible expectation for Update method
 	mockObserver.On("Update", mock.Anything).Return(nil).Maybe()
 	return mockObserver
 }
