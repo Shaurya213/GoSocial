@@ -102,49 +102,7 @@ func (cfg *Config) DSN() string {
 		cfg.Database.Port,
 		cfg.Database.DatabaseName,
 	)
-=======
-	"log"
-	"os"
-	"os/exec"
-
-	"github.com/joho/godotenv"
 )
-
-type Config struct {
-	MongoDB MongoDBConfig
-	MySQL   MySQLConfig
-	JWT     JWTConfig
-	Server  ServerConfig
-}
-
-type MongoDBConfig struct {
-	Host     string
-	Port     string
-	Username string
-	Password string
-	Database string
-}
-
-type MySQLConfig struct {
-	Host     string
-	Port     string
-	Username string
-	Password string
-	Database string
-}
-
-type JWTConfig struct {
-	Secret string
-}
-
-type ServerConfig struct {
-	ChatServicePort  string
-	UserServicePort  string
-	FeedServicePort  string
-	NotifServicePort string
-	MediaServicePort string
-	MediaBaseURL	 string
-}
 
 func LoadConfig() *Config {
 	err := godotenv.Load()
@@ -213,5 +171,5 @@ func (c *Config) GetMySQLDSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 	c.MySQL.Username, c.MySQL.Password,
 	c.MySQL.Host, c.MySQL.Port, c.MySQL.Database)
-=========
+
 }
