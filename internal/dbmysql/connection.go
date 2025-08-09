@@ -46,6 +46,11 @@ func NewMySQL(cnf *config.Config) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(cnf.Database.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(30 * time.Minute)
 
+	if err := db.AutoMigrate(&Message{}); err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
+
 	log.Println("✅ Connected to MySQL successfully")
+
 	return db, nil
 }

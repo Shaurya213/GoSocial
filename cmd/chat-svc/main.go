@@ -27,7 +27,7 @@ func main() {
 		log.Fatalf("Failed to initialize chat service: %v", err)
 	}
 	defer cleanup()
-	// Auto-migrate the Message model (since your NewMySQL doesn't do this)
+	
 
 	// Create gRPC server
 	grpcServer := grpc.NewServer(
