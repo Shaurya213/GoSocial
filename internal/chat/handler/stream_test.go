@@ -2,11 +2,11 @@ package handler
 
 import (
     "context"
-    "io"
     "testing"
     "time"
 
     "go.uber.org/mock/gomock"
+    "net"
     "github.com/stretchr/testify/assert"
     "google.golang.org/grpc"
     "google.golang.org/grpc/test/bufconn"
