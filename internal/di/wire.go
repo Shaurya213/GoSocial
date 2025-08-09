@@ -3,7 +3,6 @@
 package di
 
 import (
-	"fmt"
 	"gosocial/internal/chat/handler"
 	"gosocial/internal/chat/repository"
 	"gosocial/internal/chat/service"
@@ -18,7 +17,6 @@ import (
 	"context"
 	"google.golang.org/api/option"
 	
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
 	"github.com/google/wire"
@@ -56,7 +54,8 @@ type Application struct {
 func InitializeApplication() (*Application, error) {
 	wire.Build(
 		config.LoadConfig,
-		ProvideDatabaseConnection,
+		//ProvideDatabaseConnection,
+		dbmysql.NewMySQL,
 		dbmysql.NewNotificationRepository,
 		dbmysql.NewDeviceRepository,
 		ProvideFirebaseApp,
@@ -75,6 +74,7 @@ func ProvideNotificationServiceInterface(service *notif.NotificationService) not
 	return service
 }
 
+/*
 func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		cfg.Database.Username,
@@ -86,12 +86,14 @@ func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
 
 	log.Printf("Connecting to MySQL: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DatabaseName)
 
+	/*
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
-
 	dbmysql.SetDB(db)
+
+	db, err := dbmysql.kkkjj
 
 	if err := db.AutoMigrate(
 		&dbmysql.Notification{},
@@ -102,6 +104,7 @@ func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
 
 	return db, nil
 }
+*/
 
 func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
 	if !cfg.Firebase.Enabled || cfg.Firebase.CredentialsFilePath == "" {

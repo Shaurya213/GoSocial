@@ -1,17 +1,8 @@
 package dbmysql
 
-import (
-	"fmt"
-	"gosocial/internal/config"
-	"log"
-	"time"
-
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-)
 
 // NewMySQL returns a GORM DB instance connected to MySQL
+/*
 func NewMySQL(cnf *config.Config) (*gorm.DB, error) {
 	dsn := cnf.DSN()
 	if dsn == "" {
@@ -37,3 +28,4 @@ func NewMySQL(cnf *config.Config) (*gorm.DB, error) {
 	log.Println("✅ Connected to MySQL successfully")
 	return db, nil
 }
+*/

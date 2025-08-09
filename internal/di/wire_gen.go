@@ -10,10 +10,8 @@ import (
 	"context"
 	"firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
-	"fmt"
 	"github.com/google/wire"
 	"google.golang.org/api/option"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gosocial/internal/chat/handler"
 	"gosocial/internal/chat/repository"
@@ -43,7 +41,7 @@ func InitializeChatService() (*handler.ChatHandler, func(), error) {
 
 func InitializeApplication() (*Application, error) {
 	configConfig := config.LoadConfig()
-	db, err := ProvideDatabaseConnection(configConfig)
+	db, err := dbmysql.NewMySQL(configConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -85,32 +83,6 @@ type Application struct {
 // FIXED: Add this provider function to convert concrete service to interface
 func ProvideNotificationServiceInterface(service2 *notif.NotificationService) notif.NotificationServiceInterface {
 	return service2
-}
-
-func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.Database.Username,
-		cfg.Database.Password,
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.DatabaseName,
-	)
-	log.Printf("Connecting to MySQL: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DatabaseName)
-
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
-	}
-	dbmysql.SetDB(db)
-
-	if err := db.AutoMigrate(
-		&dbmysql.Notification{},
-		&dbmysql.Device{},
-	); err != nil {
-		log.Printf("Migration warning: %v", err)
-	}
-
-	return db, nil
 }
 
 func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
