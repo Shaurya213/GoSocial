@@ -7,12 +7,22 @@
 package di
 
 import (
+	"context"
+	"firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/messaging"
+	"fmt"
 	"github.com/google/wire"
+	"google.golang.org/api/option"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"gosocial/internal/chat/handler"
 	"gosocial/internal/chat/repository"
 	"gosocial/internal/chat/service"
+	"gosocial/internal/common"
 	"gosocial/internal/config"
 	"gosocial/internal/dbmysql"
+	"gosocial/internal/notif"
+	"log"
 )
 
 // Injectors from wire.go:
@@ -31,7 +41,117 @@ func InitializeChatService() (*handler.ChatHandler, func(), error) {
 	}, nil
 }
 
+func InitializeApplication() (*Application, error) {
+	configConfig := config.LoadConfig()
+	db, err := ProvideDatabaseConnection(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	notificationRepository := dbmysql.NewNotificationRepository(db)
+	deviceRepository := dbmysql.NewDeviceRepository(db)
+	app, err := ProvideFirebaseApp(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	client, err := ProvideFirebaseMessaging(app)
+	if err != nil {
+		return nil, err
+	}
+	emailService := ProvideEmailService(configConfig)
+	notificationService := notif.NewNotificationService(configConfig, notificationRepository, deviceRepository, client, emailService)
+	notificationServiceInterface := ProvideNotificationServiceInterface(notificationService)
+	notificationHandler := notif.NewNotificationHandler(notificationServiceInterface, configConfig, client, deviceRepository)
+	application := &Application{
+		Config:  configConfig,
+		DB:      db,
+		Handler: notificationHandler,
+		Service: notificationService,
+	}
+	return application, nil
+}
+
 // wire.go:
 
 // ChatProviderSet contains all providers for chat service
 var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler)
+
+type Application struct {
+	Config  *config.Config
+	DB      *gorm.DB
+	Handler *notif.NotificationHandler
+	Service *notif.NotificationService
+}
+
+// FIXED: Add this provider function to convert concrete service to interface
+func ProvideNotificationServiceInterface(service2 *notif.NotificationService) notif.NotificationServiceInterface {
+	return service2
+}
+
+func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.DatabaseName,
+	)
+	log.Printf("Connecting to MySQL: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DatabaseName)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
+	}
+	dbmysql.SetDB(db)
+
+	if err := db.AutoMigrate(
+		&dbmysql.Notification{},
+		&dbmysql.Device{},
+	); err != nil {
+		log.Printf("Migration warning: %v", err)
+	}
+
+	return db, nil
+}
+
+func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
+	if !cfg.Firebase.Enabled || cfg.Firebase.CredentialsFilePath == "" {
+		log.Println("Firebase disabled or credentials missing")
+		return nil, nil
+	}
+
+	opt := option.WithCredentialsFile(cfg.Firebase.CredentialsFilePath)
+	firebaseConfig := &firebase.Config{ProjectID: cfg.Firebase.ProjectID}
+
+	app, err := firebase.NewApp(context.Background(), firebaseConfig, opt)
+	if err != nil {
+		log.Printf("Firebase init error: %v", err)
+		return nil, nil
+	}
+
+	return app, nil
+}
+
+func ProvideFirebaseMessaging(app *firebase.App) (*messaging.Client, error) {
+	if app == nil {
+		log.Println("No Firebase app provided")
+		return nil, nil
+	}
+
+	client, err := app.Messaging(context.Background())
+	if err != nil {
+		log.Printf("Failed to get FCM client: %v", err)
+		return nil, nil
+	}
+	return client, nil
+}
+
+func ProvideEmailService(cfg *config.Config) common.EmailService {
+	return &MockEmailService{}
+}
+
+type MockEmailService struct{}
+
+func (m *MockEmailService) SendEmail(to, subject, body string) error {
+	log.Printf("Mock Email - To: %s | Subject: %s", to, subject)
+	return nil
+}
