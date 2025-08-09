@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	pb "gosocial/api/v1"
-	"gosocial/internal/wire"
+	"gosocial/internal/di"
 
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	log.Println("Initializing application...")
-	app, err := wire.InitializeApplication()
+	app, err := di.InitializeApplication()
 	if err != nil {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}
