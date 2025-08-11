@@ -166,4 +166,3 @@ func TestChatRepository_FetchHistory(t *testing.T) {
 		})
 	}
 }
-

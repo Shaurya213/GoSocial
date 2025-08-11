@@ -90,7 +90,6 @@ func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistory
 		end = len(domainMessages)
 	}
 
-	// Now safe to slice
 	for _, msg := range domainMessages[start:end] {
 		protoMessage := &pb.ChatMessage{
 			ConversationId: msg.ConversationID,
@@ -105,7 +104,6 @@ func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistory
 		Messages: protoMessages,
 	}, nil
 }
-
 
 func (h *ChatHandler) StreamMessages(stream pb.ChatService_StreamMessagesServer) error {
 	var conversationID string

@@ -10,44 +10,46 @@ import (
 	"time"
 
 	pb "gosocial/api/v1/chat"
-	"gosocial/internal/config"
 	"gosocial/internal/di"
+	"gosocial/internal/dbmysql"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
-
 func main() {
-	cfg := config.LoadConfig()
 	log.Println("Starting Chat Service...")
-	// Initialize all dependencies via Wire
 
-	chatHandler, cleanup, err := di.InitializeChatService()
+	// Get both handler and database
+	app, cleanup, err := di.InitializeChatService()
 	if err != nil {
 		log.Fatalf("Failed to initialize chat service: %v", err)
 	}
 	defer cleanup()
-	// Auto-migrate the Message model (since your NewMySQL doesn't do this)
+
+	// Run migrations in main.go where they belong
+	if err := app.DB.AutoMigrate(&dbmysql.Message{}); err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
+	log.Println("✅ Database migration completed")
 
 	// Create gRPC server
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(loggingUnaryInterceptor),
 		grpc.StreamInterceptor(loggingStreamInterceptor),
 	)
-
-	// Register services
-	pb.RegisterChatServiceServer(grpcServer, chatHandler)
+	// Register services using app.Handler
+	pb.RegisterChatServiceServer(grpcServer, app.Handler)
 	reflection.Register(grpcServer)
 
-	// Start server
-	lis, err := net.Listen("tcp", ":"+cfg.Server.ChatServicePort)
+	// Rest of your server setup...
+	lis, err := net.Listen("tcp", ":"+app.Config.Server.ChatServicePort)
 	if err != nil {
-		log.Fatalf("Failed to listen on port %s: %v", cfg.Server.ChatServicePort, err)
+		log.Fatalf("Failed to listen on port %s: %v", app.Config.Server.ChatServicePort, err)
 	}
 
 	// Graceful shutdown handling
 	go func() {
-		log.Printf("Chat Service running on port %s", cfg.Server.ChatServicePort)
+		log.Printf("Chat Service running on port %s", app.Config.Server.ChatServicePort)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve: %v", err)
 		}
@@ -71,16 +73,16 @@ func loggingUnaryInterceptor(
 ) (interface{}, error) {
 	start := time.Now()
 	log.Printf("→ %s", info.FullMethod)
-	
+
 	resp, err := handler(ctx, req)
-	
+
 	duration := time.Since(start)
 	if err != nil {
 		log.Printf("✗ %s failed (%v): %v", info.FullMethod, duration, err)
 	} else {
 		log.Printf("✓ %s completed (%v)", info.FullMethod, duration)
 	}
-	
+
 	return resp, err
 }
 
@@ -91,15 +93,13 @@ func loggingStreamInterceptor(
 	handler grpc.StreamHandler,
 ) error {
 	log.Printf("⟷ %s stream started", info.FullMethod)
-	
 	err := handler(srv, stream)
-	
+
 	if err != nil {
 		log.Printf("✗ %s stream ended with error: %v", info.FullMethod, err)
 	} else {
 		log.Printf("✓ %s stream completed", info.FullMethod)
 	}
-	
 	return err
 }
 

@@ -37,7 +37,7 @@ services:
         ipv4_address: 172.20.0.11
 
   mysql:
-    image: mysql:8
+    image: mysql:8.0  
     container_name: gosocial_mysql
     restart: unless-stopped
     ports:
@@ -47,9 +47,9 @@ services:
       MYSQL_DATABASE: gosocial_db
       MYSQL_USER: gosocial_user
       MYSQL_PASSWORD: G0Social@123
-    command: --default-authentication-plugin=mysql_native_password  
+    command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql  # Make sure this matches the volume name
     networks:
       gosocial_network:
         ipv4_address: 172.20.0.12

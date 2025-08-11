@@ -7,18 +7,26 @@
 package di
 
 import (
+	"context"
+	"firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/messaging"
 	"github.com/google/wire"
+	"google.golang.org/api/option"
+	"gorm.io/gorm"
 	"gosocial/internal/chat/handler"
 	"gosocial/internal/chat/repository"
 	"gosocial/internal/chat/service"
+	"gosocial/internal/common"
 	"gosocial/internal/config"
 	"gosocial/internal/dbmysql"
+	"gosocial/internal/notif"
+	"log"
 )
 
 // Injectors from wire.go:
 
-// InitializeChatService wires up all dependencies for the chat service
-func InitializeChatService() (*handler.ChatHandler, func(), error) {
+// InitializeChatService now returns ChatApp with both handler and DB
+func InitializeChatService() (*ChatApp, func(), error) {
 	configConfig := config.LoadConfig()
 	db, err := dbmysql.NewMySQL(configConfig)
 	if err != nil {
@@ -27,11 +35,105 @@ func InitializeChatService() (*handler.ChatHandler, func(), error) {
 	chatRepository := repository.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepository)
 	chatHandler := handler.NewChatHandler(chatService)
-	return chatHandler, func() {
+	chatApp := &ChatApp{
+		Handler: chatHandler,
+		DB:      db,
+		Config:  configConfig,
+	}
+	return chatApp, func() {
 	}, nil
+}
+
+func InitializeApplication() (*Application, error) {
+	configConfig := config.LoadConfig()
+	db, err := dbmysql.NewMySQL(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	notificationRepository := dbmysql.NewNotificationRepository(db)
+	deviceRepository := dbmysql.NewDeviceRepository(db)
+	app, err := ProvideFirebaseApp(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	client, err := ProvideFirebaseMessaging(app)
+	if err != nil {
+		return nil, err
+	}
+	emailService := ProvideEmailService(configConfig)
+	notificationService := notif.NewNotificationService(configConfig, notificationRepository, deviceRepository, client, emailService)
+	notificationServiceInterface := ProvideNotificationServiceInterface(notificationService)
+	notificationHandler := notif.NewNotificationHandler(notificationServiceInterface, configConfig, client, deviceRepository)
+	application := &Application{
+		Config:  configConfig,
+		DB:      db,
+		Handler: notificationHandler,
+		Service: notificationService,
+	}
+	return application, nil
 }
 
 // wire.go:
 
-// ChatProviderSet contains all providers for chat service
-var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler)
+type ChatApp struct {
+	Handler *handler.ChatHandler
+	DB      *gorm.DB
+	Config  *config.Config
+}
+
+var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler, wire.Struct(new(ChatApp), "*"))
+
+type Application struct {
+	Config  *config.Config
+	DB      *gorm.DB
+	Handler *notif.NotificationHandler
+	Service *notif.NotificationService
+}
+
+// FIXED: Add this provider function to convert concrete service to interface
+func ProvideNotificationServiceInterface(service2 *notif.NotificationService) notif.NotificationServiceInterface {
+	return service2
+}
+
+func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
+	if !cfg.Firebase.Enabled || cfg.Firebase.CredentialsFilePath == "" {
+		log.Println("Firebase disabled or credentials missing")
+		return nil, nil
+	}
+
+	opt := option.WithCredentialsFile(cfg.Firebase.CredentialsFilePath)
+	firebaseConfig := &firebase.Config{ProjectID: cfg.Firebase.ProjectID}
+
+	app, err := firebase.NewApp(context.Background(), firebaseConfig, opt)
+	if err != nil {
+		log.Printf("Firebase init error: %v", err)
+		return nil, nil
+	}
+
+	return app, nil
+}
+
+func ProvideFirebaseMessaging(app *firebase.App) (*messaging.Client, error) {
+	if app == nil {
+		log.Println("No Firebase app provided")
+		return nil, nil
+	}
+
+	client, err := app.Messaging(context.Background())
+	if err != nil {
+		log.Printf("Failed to get FCM client: %v", err)
+		return nil, nil
+	}
+	return client, nil
+}
+
+func ProvideEmailService(cfg *config.Config) common.EmailService {
+	return &MockEmailService{}
+}
+
+type MockEmailService struct{}
+
+func (m *MockEmailService) SendEmail(to, subject, body string) error {
+	log.Printf("Mock Email - To: %s | Subject: %s", to, subject)
+	return nil
+}
