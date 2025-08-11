@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// ChatService defines 
 type ChatService interface {
 	SendMessage(ctx context.Context, msg *dbmysql.Message) (*dbmysql.Message, error)
 	GetMessageHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error)
@@ -18,12 +17,10 @@ type chatService struct {
 	repo repository.ChatRepository
 }
 
-// Constructor used in DI/wire
 func NewChatService(r repository.ChatRepository) ChatService {
 	return &chatService{repo: r}
 }
 
-// SendMessage handles message validation and saving
 func (s *chatService) SendMessage(ctx context.Context, msg *dbmysql.Message) (*dbmysql.Message, error) {
 	// Input Validation
 	if msg.ConversationID == "" {
@@ -35,11 +32,7 @@ func (s *chatService) SendMessage(ctx context.Context, msg *dbmysql.Message) (*d
 	if msg.Content == "" {
 		return nil, errors.New("message content cannot be empty")
 	}
-
-	// Set server-side timestamp
 	msg.SentAt = time.Now().UTC()
-
-	// Save to DB via repository
 	err := s.repo.Save(ctx, msg)
 	if err != nil {
 		return nil, err
@@ -48,7 +41,6 @@ func (s *chatService) SendMessage(ctx context.Context, msg *dbmysql.Message) (*d
 	return msg, nil
 }
 
-// GetMessageHistory returns full message history of a conversation
 func (s *chatService) GetMessageHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error) {
 	if conversationID == "" {
 		return nil, errors.New("conversation ID is required")

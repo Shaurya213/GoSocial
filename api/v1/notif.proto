@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package notif.v1;
+
+option go_package = "gosocial/api/v1";
+
+import "google/protobuf/timestamp.proto";
+
+// It is used to define notification service
+service NotificationService {
+  // rpc SendNotification function will send the notification imedeately
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+  
+  // This rpc function is used to schedule notification for later events
+  rpc ScheduleNotification(ScheduleNotificationRequest) returns (ScheduleNotificationResponse);
+  
+  // We can get user notification using this GetUserNotifications func
+  rpc GetUserNotifications(GetUserNotificationsRequest) returns (GetUserNotificationsResponse);
+  
+  // When notification is marked as read it will return that
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  
+  // This function helps to register devices for push notification
+  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse);
+  
+  // we can get sendFriendRequest notification using this function
+  rpc SendFriendRequest(SendFriendRequestRequest) returns (SendFriendRequestResponse);
+  
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Messages for SendNotification
+message SendNotificationRequest {
+  string user_id = 1;
+  string title = 2;
+  string message = 3;
+  string type = 4;
+  map<string, string> data = 5;
+  repeated string channels = 6;
+}
+
+message SendNotificationResponse {
+  bool success = 1;
+  string message = 2;
+  string notification_id = 3;
+}
+
+// Messages for ScheduleNotification
+message ScheduleNotificationRequest {
+  string user_id = 1;
+  string title = 2;
+  string message = 3;
+  string type = 4;
+  google.protobuf.Timestamp scheduled_at = 5;
+  map<string, string> data = 6;
+  repeated string channels = 7;
+}
+
+message ScheduleNotificationResponse {
+  bool success = 1;
+  string message = 2;
+  string notification_id = 3;
+}
+
+// Messages for GetUserNotifications
+message GetUserNotificationsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  bool unread_only = 4;
+}
+
+message NotificationData {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string message = 4;
+  string type = 5;
+  bool is_read = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  map<string, string> data = 9;
+}
+
+message GetUserNotificationsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated NotificationData notifications = 3;
+  int32 total_count = 4;
+  int32 page = 5;
+  int32 limit = 6;
+}
+
+// Messages for MarkAsRead
+message MarkAsReadRequest {
+  string notification_id = 1;
+  string user_id = 2;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Messages for RegisterDevice
+message RegisterDeviceRequest {
+  string user_id = 1;
+  string device_token = 2;
+  string platform = 3;
+}
+
+message RegisterDeviceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Messages for SendFriendRequest
+message SendFriendRequestRequest {
+  string from_user_id = 1;
+  string to_user_id = 2;
+  string from_username = 3;
+}
+
+message SendFriendRequestResponse {
+  bool success = 1;
+  string message = 2;
+  string notification_id = 3;
+}
+
+// Health Check Messages
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  string service = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}

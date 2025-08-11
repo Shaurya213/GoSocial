@@ -1,5 +1,4 @@
 package dbmysql
-
 import "time"
 
 type Content struct {
