@@ -25,8 +25,8 @@ import (
 
 // Injectors from wire.go:
 
-// InitializeChatService wires up all dependencies for the chat service
-func InitializeChatService() (*handler.ChatHandler, func(), error) {
+// InitializeChatService now returns ChatApp with both handler and DB
+func InitializeChatService() (*ChatApp, func(), error) {
 	configConfig := config.LoadConfig()
 	db, err := dbmysql.NewMySQL(configConfig)
 	if err != nil {
@@ -35,7 +35,12 @@ func InitializeChatService() (*handler.ChatHandler, func(), error) {
 	chatRepository := repository.NewChatRepository(db)
 	chatService := service.NewChatService(chatRepository)
 	chatHandler := handler.NewChatHandler(chatService)
-	return chatHandler, func() {
+	chatApp := &ChatApp{
+		Handler: chatHandler,
+		DB:      db,
+		Config:  configConfig,
+	}
+	return chatApp, func() {
 	}, nil
 }
 
@@ -70,8 +75,13 @@ func InitializeApplication() (*Application, error) {
 
 // wire.go:
 
-// ChatProviderSet contains all providers for chat service
-var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler)
+type ChatApp struct {
+	Handler *handler.ChatHandler
+	DB      *gorm.DB
+	Config  *config.Config
+}
+
+var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler, wire.Struct(new(ChatApp), "*"))
 
 type Application struct {
 	Config  *config.Config

@@ -22,27 +22,26 @@ import (
 	"github.com/google/wire"
 )
 
-// ChatProviderSet contains all providers for chat service
+type ChatApp struct {
+    Handler *handler.ChatHandler
+    DB      *gorm.DB
+    Config  *config.Config
+}
+
 var ChatProviderSet = wire.NewSet(
-	config.LoadConfig,
-	// Use existing database connection function
-	dbmysql.NewMySQL,
-	
-	// Repository layer
-	repository.NewChatRepository,
-	
-	// Service layer
-	service.NewChatService,
-	
-	// Handler layer
-	handler.NewChatHandler,
+    config.LoadConfig,
+    dbmysql.NewMySQL,
+    repository.NewChatRepository,
+    service.NewChatService,
+    handler.NewChatHandler,
+    wire.Struct(new(ChatApp), "*"), // Wire creates ChatApp with all fields
 )
 
-// InitializeChatService wires up all dependencies for the chat service
-func InitializeChatService() (*handler.ChatHandler, func(), error) {
-	wire.Build(ChatProviderSet)
-	return nil, nil, nil
-} 
+// InitializeChatService now returns ChatApp with both handler and DB
+func InitializeChatService() (*ChatApp, func(), error) {
+    wire.Build(ChatProviderSet)
+    return nil, nil, nil
+}
 
 type Application struct {
 	Config  *config.Config

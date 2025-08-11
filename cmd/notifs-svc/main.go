@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"syscall"
 
 	pb "gosocial/api/v1"
+	"gosocial/internal/dbmysql"
 	"gosocial/internal/di"
 
 	"github.com/joho/godotenv"
@@ -23,6 +25,12 @@ func main() {
 
 	log.Println("Initializing application...")
 	app, err := di.InitializeApplication()
+
+	if err := app.DB.AutoMigrate(&dbmysql.Notification{}, &dbmysql.Device{}); err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
+	log.Println("✅ Database migration completed")
+
 	if err != nil {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}
@@ -32,7 +40,7 @@ func main() {
 
 	reflection.Register(grpcServer) // used for services discovery , and enables grpcurl , postman services(without effecting proto files), and also helps to qurey the server for schema
 
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s",  app.Config.Server.NotifServicePort))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
