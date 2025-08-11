@@ -22,19 +22,38 @@ var (
 )
 
 func setup(t *testing.T) {
-	var err error
+	t.Helper()
 
-	db, err = gorm.Open(mysql.Open("root:root@tcp(localhost:3306)/gosocial_test?parseTime=true"), &gorm.Config{})
+	// --- MySQL ---
+	dsn := "root:root@tcp(localhost:3307)/gosocial_test?parseTime=true&multiStatements=true"
+	var err error
+	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		// Critical for tests: avoid GORM generating FK constraints that flip directions
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
 	if err != nil {
 		t.Fatalf("Failed to connect to MySQL: %v", err)
 	}
-	_ = db.AutoMigrate(&dbmysql.Content{}, &dbmysql.MediaRef{}, &dbmysql.Reaction{})
 
-	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	// Migrate in safe order; include users because media_ref has UploadedBy -> users.user_id
+	if err := db.AutoMigrate(
+		&dbmysql.User{},
+		&dbmysql.Content{},
+		&dbmysql.MediaRef{},
+		&dbmysql.Reaction{},
+	); err != nil {
+		t.Fatalf("AutoMigrate failed: %v", err)
+	}
+
+	// --- MongoDB (with auth, matches docker-compose) ---
+	mongoURI := "mongodb://admin:admin123@localhost:27017/?authSource=admin"
+	mc, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		t.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
-	gridClient, err = dbmongo.NewGridFSClient(mongoClient.Database("gosocial_test"))
+
+	// Use a test database; Mongo will create it on first write
+	gridClient, err = dbmongo.NewGridFSClient(mc.Database("gosocial_test"))
 	if err != nil {
 		t.Fatalf("Failed to create GridFS client: %v", err)
 	}
