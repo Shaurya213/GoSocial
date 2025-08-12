@@ -13,7 +13,6 @@ import (
 	"gosocial/internal/di"
 	"gosocial/internal/dbmysql"
 
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -38,7 +37,6 @@ func main() {
 		grpc.UnaryInterceptor(loggingUnaryInterceptor),
 		grpc.StreamInterceptor(loggingStreamInterceptor),
 	)
-
 	// Register services using app.Handler
 	pb.RegisterChatServiceServer(grpcServer, app.Handler)
 	reflection.Register(grpcServer)
@@ -95,7 +93,6 @@ func loggingStreamInterceptor(
 	handler grpc.StreamHandler,
 ) error {
 	log.Printf("⟷ %s stream started", info.FullMethod)
-
 	err := handler(srv, stream)
 
 	if err != nil {
@@ -103,7 +100,6 @@ func loggingStreamInterceptor(
 	} else {
 		log.Printf("✓ %s stream completed", info.FullMethod)
 	}
-
 	return err
 }
 
