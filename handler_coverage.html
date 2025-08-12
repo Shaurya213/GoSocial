@@ -1,0 +1,295 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>handler: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">gosocial/internal/chat/handler/chat_handler.go (51.5%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Package handler: this the chat handler
+package handler
+
+import (
+        "context"
+        "fmt"
+        "io"
+        "log"
+        "sync"
+
+        pb "gosocial/api/v1/chat" 
+
+        "gosocial/internal/chat/service"
+        "gosocial/internal/dbmysql"
+
+        "google.golang.org/grpc/codes"
+        "google.golang.org/protobuf/types/known/timestamppb"
+)
+
+type ChatHandler struct {
+        pb.UnimplementedChatServiceServer
+        chatService service.ChatService
+        mu          sync.RWMutex
+        streams     map[string][]pb.ChatService_StreamMessagesServer
+}
+
+func NewChatHandler(chatService service.ChatService) *ChatHandler <span class="cov8" title="1">{
+        return &amp;ChatHandler{
+                chatService: chatService,
+                streams: make(map[string][]pb.ChatService_StreamMessagesServer),
+        }
+}</span>
+
+//SendMessages is a method that exists
+func (h *ChatHandler) SendMessages(ctx context.Context, req *pb.SendMessageRequest) (*pb.SendMessageResponse, error) <span class="cov8" title="1">{
+        domainMsg := &amp;dbmysql.Message{
+                ConversationID: req.ConversationId,
+                SenderID: req.SenderId,
+                Content: req.Content,
+        }
+
+        savedMsg, err := h.chatService.SendMessage(ctx, domainMsg)
+
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf( "failed to send Message %v : internal codes : %v", err, codes.Internal )
+        }</span>
+
+        <span class="cov8" title="1">protoMsg := &amp;pb.ChatMessage{
+                ConversationId: savedMsg.ConversationID,
+                SenderId: savedMsg.SenderID,
+                Content: savedMsg.Content,
+                SentAt: timestamppb.New(savedMsg.SentAt),
+        }
+
+        h.broadcastToStream(savedMsg.ConversationID, protoMsg)
+
+        return &amp;pb.SendMessageResponse{
+                Success: true,
+                Message: protoMsg,
+        }, nil</span>
+}
+
+func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistoryRequest) (*pb.GetChatHistoryResponse, error) <span class="cov8" title="1">{
+        domainMessages, err := h.chatService.GetMessageHistory(ctx, req.ConversationId)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Failed to get chat history : %v, Error codes: %v", err, codes.Internal)
+        }</span>
+
+        <span class="cov8" title="1">protoMessages := make([]*pb.ChatMessage, 0, len(domainMessages))
+
+        // ✅ FIX: Safe bounds checking for pagination
+        start := int(req.Offset)
+        limit := int(req.Limit)
+
+        // Handle negative or invalid values
+        if start &lt; 0 </span><span class="cov0" title="0">{
+                start = 0
+        }</span>
+        <span class="cov8" title="1">if limit &lt;= 0 </span><span class="cov0" title="0">{
+                return &amp;pb.GetChatHistoryResponse{Messages: []*pb.ChatMessage{}}, nil
+        }</span>
+
+        // Check if start is beyond available messages
+        <span class="cov8" title="1">if start &gt;= len(domainMessages) </span><span class="cov8" title="1">{
+                return &amp;pb.GetChatHistoryResponse{Messages: []*pb.ChatMessage{}}, nil
+        }</span>
+
+        <span class="cov8" title="1">end := start + limit
+        if end &gt; len(domainMessages) </span><span class="cov8" title="1">{
+                end = len(domainMessages)
+        }</span>
+
+        // Now safe to slice
+        <span class="cov8" title="1">for _, msg := range domainMessages[start:end] </span><span class="cov8" title="1">{
+                protoMessage := &amp;pb.ChatMessage{
+                        ConversationId: msg.ConversationID,
+                        SenderId:       msg.SenderID,
+                        Content:        msg.Content,
+                        SentAt:         timestamppb.New(msg.SentAt),
+                }
+                protoMessages = append(protoMessages, protoMessage)
+        }</span>
+
+        <span class="cov8" title="1">return &amp;pb.GetChatHistoryResponse{
+                Messages: protoMessages,
+        }, nil</span>
+}
+
+
+func (h *ChatHandler) StreamMessages(stream pb.ChatService_StreamMessagesServer) error <span class="cov0" title="0">{
+        var conversationID string
+
+        go func()</span><span class="cov0" title="0">{
+                for </span><span class="cov0" title="0">{
+                        protoMsg, err := stream.Recv()
+                        if err == io.EOF </span><span class="cov0" title="0">{
+                                break</span>
+                        }
+                        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                                log.Printf("Error reciving Messages: %v", err)
+                                break</span>
+                        }
+                        <span class="cov0" title="0">if conversationID == "" </span><span class="cov0" title="0">{
+                                conversationID = protoMsg.ConversationId
+                                h.mu.Lock()
+                                h.streams[conversationID] = append(h.streams[conversationID], stream)
+                                h.mu.Unlock()
+                        }</span>
+
+                        <span class="cov0" title="0">domainMsg := &amp;dbmysql.Message{
+                                ConversationID: protoMsg.ConversationId,
+                                SenderID: protoMsg.SenderId,
+                                Content: protoMsg.Content,
+                        } 
+
+                        savedMsg, err := h.chatService.SendMessage(stream.Context(), domainMsg)
+
+                        if err != nil </span><span class="cov0" title="0">{
+                                log.Printf("Failed to save Steamed Messages: %v", err)
+                                continue</span>
+                        }
+
+                        <span class="cov0" title="0">brodcastMsg := &amp;pb.ChatMessage{
+                                ConversationId: savedMsg.ConversationID,
+                                SenderId: savedMsg.SenderID,
+                                Content: savedMsg.Content,
+                                SentAt: timestamppb.New(savedMsg.SentAt),
+                        }
+                        h.broadcastToStream(savedMsg.ConversationID, brodcastMsg)</span>
+                }
+        }()
+
+        <span class="cov0" title="0">select </span>{
+        case &lt;-stream.Context().Done():<span class="cov0" title="0">
+                h.removeStream(conversationID, stream)
+                return stream.Context().Err()</span>
+        }
+}
+
+func (h *ChatHandler) broadcastToStream(conversationID string, msg *pb.ChatMessage) <span class="cov8" title="1">{
+        h.mu.RLock()
+        streams, ok := h.streams[conversationID]
+        h.mu.RUnlock()
+
+        if !ok </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov0" title="0">for _, stream := range streams </span><span class="cov0" title="0">{
+                if err := stream.Send(msg); err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Failed to print stream: %v", err)
+                        //TODO: Remove failed steams
+                }</span>
+        }
+}
+
+func (h *ChatHandler) removeStream(conversationID string, stream pb.ChatService_StreamMessagesServer) <span class="cov8" title="1">{
+        h.mu.Lock()
+        defer h.mu.Unlock()
+
+        streams, ok := h.streams[conversationID]
+        if !ok </span><span class="cov8" title="1">{
+                return
+        }</span>
+        <span class="cov0" title="0">for i, st := range streams </span><span class="cov0" title="0">{
+                if st == stream </span><span class="cov0" title="0">{
+                        h.streams[conversationID] = append(streams[:i], streams[i+1:]...)
+                        break</span>
+                }
+        }
+}
+
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

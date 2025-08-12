@@ -1,15 +1,15 @@
 package media
 
 import (
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
+	"fmt"
+	"log"
 
-	"GoSocial/internal/dbmongo"
 	"github.com/gorilla/mux"
+	"gosocial/internal/dbmongo"
 )
 
 type HTTPServer struct {
@@ -18,7 +18,7 @@ type HTTPServer struct {
 
 func NewHTTPServer(mongoClient *dbmongo.MongoClient) *HTTPServer {
 	return &HTTPServer{
-		storage: dbmongo.NewMediaStorage(mongoClient.GridFS),
+		storage: dbmongo.NewMediaStorage(mongoClient),
 	}
 }
 
@@ -79,3 +79,4 @@ func (s *HTTPServer) health(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("✅ Media server is healthy"))
 }
+

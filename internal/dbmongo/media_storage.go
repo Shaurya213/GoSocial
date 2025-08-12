@@ -1,84 +1,125 @@
 package dbmongo
 
 import (
-	"bytes"
 	"context"
+	"fmt"
+	"io"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"io"
+
+	"gosocial/internal/common"
 )
 
-type GridFSClient struct {
-	bucket *gridfs.Bucket
+type MediaStorage struct {
+	gridFS *gridfs.Bucket
 }
 
-func NewGridFSClient(db *mongo.Database) (*GridFSClient, error) {
-	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName("media"))
-	if err != nil {
-		return nil, err
+func NewMediaStorage(mongoClient *MongoClient) *MediaStorage {
+	return &MediaStorage{
+		gridFS: mongoClient.GridFS,
 	}
-	return &GridFSClient{bucket: bucket}, nil
 }
 
-func (c *GridFSClient) UploadFile(ctx context.Context, filename string, data []byte) (primitive.ObjectID, error) {
-	uploadStream, err := c.bucket.OpenUploadStream(filename)
-	if err != nil {
-		return primitive.NilObjectID, err
-	}
-	defer uploadStream.Close()
-
-	_, err = uploadStream.Write(data)
-	if err != nil {
-		return primitive.NilObjectID, err
-	}
-
-	return uploadStream.FileID.(primitive.ObjectID), nil
+type MediaFile struct {
+	ID         string               `json:"id"`          // GridFS ObjectID
+	Filename   string               `json:"filename"`    // Original filename
+	Size       int64                `json:"size"`        // File size in bytes
+	FileType   common.MediaFileType `json:"file_type"`   // image or video (from PDF)
+	UploadedBy string               `json:"uploaded_by"` // User ID who uploaded
+	UploadedAt time.Time            `json:"uploaded_at"` // Upload timestamp
 }
 
-func (c *GridFSClient) DownloadFile(ctx context.Context, fileID string) ([]byte, error) {
-	var buf bytes.Buffer
-	dStream, err := c.bucket.OpenDownloadStreamByName(fileID)
-	if err != nil {
-		return nil, err
-	}
-	defer dStream.Close()
+func (ms *MediaStorage) UploadFile(ctx context.Context, filename, mimeType, uploaderID string, content io.Reader) (*MediaFile, error) {
+	// Detect file type based on MIME
+	fileType := common.DetectFileType(mimeType)
 
-	_, err = io.Copy(&buf, dStream)
-	if err != nil {
-		return nil, err
+	// Basic metadata for GridFS (matching PDF MediaRef schema)
+	metadata := bson.M{
+		"file_type":   fileType.String(), // "image" or "video"
+		"mime_type":   mimeType,          // Full MIME type
+		"uploaded_by": uploaderID,        // User who uploaded
+		"uploaded_at": time.Now(),        // Upload timestamp
 	}
-	return buf.Bytes(), nil
+
+	// Upload to GridFS
+	opts := options.GridFSUpload().SetMetadata(metadata)
+	stream, err := ms.gridFS.OpenUploadStream(filename, opts)
+	if err != nil {
+		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+
+	defer stream.Close()
+
+	// Copy file content
+	size, err := io.Copy(stream, content)
+	if err != nil {
+		return nil, fmt.Errorf("file copy failed: %w", err)
+	}
+
+	// Return MediaFile info
+	return &MediaFile{
+		ID:         stream.FileID.(primitive.ObjectID).Hex(),
+		Filename:   filename,
+		Size:       size,
+		FileType:   fileType,
+		UploadedBy: uploaderID,
+		UploadedAt: time.Now(),
+	}, nil
 }
 
-func (c *GridFSClient) DeleteFile(ctx context.Context, fileIDStr string) error {
-	objectID, err := primitive.ObjectIDFromHex(fileIDStr)
+func (ms *MediaStorage) DownloadFile(ctx context.Context, fileID string) (io.Reader, *MediaFile, error) {
+	objectID, err := primitive.ObjectIDFromHex(fileID)
 	if err != nil {
-		return err
+		return nil, nil, fmt.Errorf("invalid file ID: %w", err)
 	}
-	return c.bucket.Delete(objectID)
+
+	// Open download stream
+	stream, err := ms.gridFS.OpenDownloadStream(objectID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("download failed: %w", err)
+	}
+
+	// Get file metadata
+	fileInfo := stream.GetFile()
+	var metadata bson.M
+	if fileInfo.Metadata != nil {
+		bson.Unmarshal(fileInfo.Metadata, &metadata)
+	}
+
+	// Build MediaFile info
+	mediaFile := &MediaFile{
+		ID:         fileID,
+		Filename:   fileInfo.Name,
+		Size:       fileInfo.Length,
+		FileType:   common.MediaFileType(getStringFromMap(metadata, "file_type")),
+		UploadedBy: getStringFromMap(metadata, "uploaded_by"),
+		UploadedAt: fileInfo.UploadDate,
+	}
+
+	return stream, mediaFile, nil
 }
 
-func (c *GridFSClient) GetFileByID(ctx context.Context, fileIDStr string) ([]byte, error) {
-	// Step 1: Convert string ID to ObjectID
-	objectID, err := primitive.ObjectIDFromHex(fileIDStr)
+func (ms *MediaStorage) DeleteFile(ctx context.Context, fileID string) error {
+	objectID, err := primitive.ObjectIDFromHex(fileID)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("invalid file ID: %w", err)
 	}
+	return ms.gridFS.Delete(objectID)
+}
 
-	// Step 2: Open download stream using ObjectID
-	dStream, err := c.bucket.OpenDownloadStream(objectID)
-	if err != nil {
-		return nil, err
+// Helper function for metadata extraction
+func getStringFromMap(m bson.M, key string) string {
+	if m == nil {
+		return ""
 	}
-	defer dStream.Close()
-
-	// Step 3: Read file data into memory
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, dStream); err != nil {
-		return nil, err
+	if val, ok := m[key]; ok {
+		if str, ok := val.(string); ok {
+			return str
+		}
 	}
-
-	return buf.Bytes(), nil
+	return ""
 }

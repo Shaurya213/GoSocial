@@ -10,8 +10,9 @@ type Message struct {
 	SenderID       string    `gorm:"index;size:36" json:"sender_id"`
 	Content        string    `gorm:"type:text" json:"content"`
 	SentAt         time.Time `gorm:"autoCreateTime" json:"sent_at"`
-	Status         string    `gorm:"type:enum('delivered','read','deleted');default:'delivered'" json:"status"`
+ 	Status         string    `gorm:"type:enum('delivered','read','deleted');default:'delivered'" json:"status"`
 	MediaRefID     *uint     `gorm:"index"` // foreign key to media_refs
 	//MediaRef       *MediaRef `gorm:"foreignKey:MediaRefID"` // eager load if needed
 	//gorm.Model
+
 }

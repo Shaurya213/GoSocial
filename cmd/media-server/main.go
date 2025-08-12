@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"GoSocial/internal/config"
-	"GoSocial/internal/dbmongo"
-	"GoSocial/internal/media"
+	"gosocial/internal/config"
+	"gosocial/internal/dbmongo"
+	"gosocial/internal/media"
 )
 
 func main() {
@@ -16,9 +16,11 @@ func main() {
 
 	// Connect to MongoDB using your existing connection
 	mongoClient, err := dbmongo.NewMongoConnection(cfg)
+
 	if err != nil {
 		log.Fatal("Failed to connect to MongoDB:", err)
 	}
+
 	defer mongoClient.Close(context.Background())
 
 	// Create HTTP server using your existing MediaStorage
@@ -32,3 +34,4 @@ func main() {
 		log.Fatal("Failed to start server:", err)
 	}
 }
+

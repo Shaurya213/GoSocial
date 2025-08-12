@@ -3,7 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>feed: Go Coverage Report</title>
+		<title>handler: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -55,878 +55,471 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">GoSocial/internal/feed/feed_handlers.go (28.2%)</option>
+				<option value="file0">gosocial/internal/chat/handler/chat_handler.go (54.4%)</option>
 				
-				<option value="file1">GoSocial/internal/feed/feed_repo.go (87.2%)</option>
+				<option value="file1">gosocial/internal/chat/handler/mocks/mock_chat_service.go (100.0%)</option>
 				
-				<option value="file2">GoSocial/internal/feed/feed_service.go (31.8%)</option>
+				<option value="file2">gosocial/internal/chat/repository/chat_repository.go (100.0%)</option>
+				
+				<option value="file3">gosocial/internal/chat/service/chat_service.go (86.7%)</option>
+				
+				<option value="file4">gosocial/internal/chat/service/mocks/mock_chat_repository.go (100.0%)</option>
 				
 				</select>
 			</div>
 			<div id="legend">
 				<span>not tracked</span>
 			
-				<span class="cov0">not covered</span>
-				<span class="cov8">covered</span>
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
 			
 			</div>
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">package feed
-
-import (
-        "context"
-        //"time"
-
-        feedpb "GoSocial/api/v1/feed" // alias the generated package
-
-        "google.golang.org/grpc/codes"
-        "google.golang.org/grpc/status"
-        "google.golang.org/protobuf/types/known/timestamppb"
-)
-
-type FeedHandlers struct {
-        FeedSvc FeedUsecase
-        feedpb.UnimplementedFeedServiceServer
-}
-
-func (h *FeedHandlers) CreatePost(ctx context.Context, req *feedpb.CreatePostRequest) (*feedpb.FeedResponse, error) <span class="cov8" title="1">{
-        if req.AuthorId &lt;= 0 </span><span class="cov8" title="1">{
-                return nil, status.Error(codes.InvalidArgument, "invalid author ID")
-        }</span>
-        <span class="cov8" title="1">if req.Text == "" &amp;&amp; len(req.MediaData) == 0 </span><span class="cov8" title="1">{
-                return nil, status.Error(codes.InvalidArgument, "post must have text or file data")
-        }</span>
-        <span class="cov8" title="1">if req.MediaType == "" </span><span class="cov8" title="1">{
-                return nil, status.Error(codes.InvalidArgument, "media type must be specified")
-        }</span>
-        <span class="cov8" title="1">if req.Privacy == "" </span><span class="cov8" title="1">{
-                return nil, status.Error(codes.InvalidArgument, "privacy setting must be specified")
-        }</span>
-        <span class="cov8" title="1">if req.MediaName == "" </span><span class="cov8" title="1">{
-                return nil, status.Error(codes.InvalidArgument, "media name must be specified")
-        }</span>
-        <span class="cov8" title="1">if len(req.MediaData) &gt; 0 &amp;&amp; req.MediaName == "" </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "media name must be specified if media data is provided")
-        }</span>
-        // Call the service method to create the post
-        <span class="cov8" title="1">postID, err := h.FeedSvc.CreatePost(
-                ctx,
-                req.AuthorId,
-                req.Text,
-                req.MediaData,
-                req.MediaName,
-                req.MediaType,
-                req.Privacy,
-        )
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to create post: %v", err)
-        }</span>
-
-        <span class="cov8" title="1">return &amp;feedpb.FeedResponse{
-                ContentId: postID,
-                Message:   "Post created successfully",
-        }, nil</span>
-}
-
-func (h *FeedHandlers) CreateReel(ctx context.Context, req *feedpb.CreateReelRequest) (*feedpb.FeedResponse, error) <span class="cov0" title="0">{
-        if req.AuthorId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid author ID")
-        }</span>
-        <span class="cov0" title="0">if req.Caption == "" &amp;&amp; len(req.MediaData) == 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "reel must have caption or file data")
-        }</span>
-        <span class="cov0" title="0">if req.MediaName == "" </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "media name must be specified")
-        }</span>
-        <span class="cov0" title="0">if req.DurationSecs &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "duration must be greater than 0")
-        }</span>
-        <span class="cov0" title="0">if req.Privacy == "" </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "privacy setting must be specified")
-        }</span>
-        <span class="cov0" title="0">if len(req.MediaData) &gt; 0 &amp;&amp; req.MediaName == "" </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "media name must be specified if media data is provided")
-        }</span>
-
-        // Call the service method to create the reel
-        <span class="cov0" title="0">reelID, err := h.FeedSvc.CreateReel(
-                ctx,
-                req.AuthorId,
-                req.Caption,
-                req.MediaData,
-                req.MediaName,
-                int(req.DurationSecs),
-                req.Privacy,
-        )
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to create reel: %v", err)
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.FeedResponse{
-                ContentId: reelID,
-                Message:   "Reel created successfully",
-        }, nil</span>
-}
-
-func (h *FeedHandlers) CreateStory(ctx context.Context, req *feedpb.CreateStoryRequest) (*feedpb.FeedResponse, error) <span class="cov0" title="0">{
-        if req.AuthorId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid author ID")
-        }</span>
-        <span class="cov0" title="0">if req.MediaName == "" </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "media name must be specified")
-        }</span>
-        <span class="cov0" title="0">if req.DurationSecs &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "duration must be greater than 0")
-        }</span>
-        <span class="cov0" title="0">if req.MediaType == "" </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "media type must be specified")
-        }</span>
-
-        // Call the service method to create the story
-        <span class="cov0" title="0">storyID, err := h.FeedSvc.CreateStory(
-                ctx,
-                req.AuthorId,
-                req.MediaData,
-                req.MediaType,
-                req.MediaName,
-                int(req.DurationSecs),
-                req.Privacy,
-        )
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to create story: %v", err)
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.FeedResponse{
-                ContentId: storyID,
-                Message:   "Story created successfully",
-        }, nil</span>
-}
-
-func (h *FeedHandlers) ReactToContent(ctx context.Context, req *feedpb.ReactionRequest) (*feedpb.FeedResponse, error) <span class="cov8" title="1">{
-        if req.UserId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid user ID")
-        }</span>
-        <span class="cov8" title="1">if req.ContentId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid content ID")
-        }</span>
-        <span class="cov8" title="1">if req.Type == "" </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "reaction type must be specified")
-        }</span>
-
-        // Call the service method to react to content
-        <span class="cov8" title="1">err := h.FeedSvc.ReactToContent(ctx, req.UserId, req.ContentId, req.Type)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to react to content: %v", err)
-        }</span>
-
-        <span class="cov8" title="1">return &amp;feedpb.FeedResponse{
-                Message: "Reaction added successfully",
-        }, nil</span>
-}
-
-func (h *FeedHandlers) GetReactions(ctx context.Context, req *feedpb.ContentID) (*feedpb.ReactionList, error) <span class="cov0" title="0">{
-        if req.ContentId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid content ID")
-        }</span>
-
-        // Call the service method to get reactions
-        <span class="cov0" title="0">reactions, err := h.FeedSvc.GetReactions(ctx, req.ContentId)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to get reactions: %v", err)
-        }</span>
-
-        // Convert reactions to protobuf format
-        <span class="cov0" title="0">var pbReactions []*feedpb.Reaction
-        for _, reaction := range reactions </span><span class="cov0" title="0">{
-                pbReactions = append(pbReactions, &amp;feedpb.Reaction{
-                        UserId:    reaction.UserID,
-                        ContentId: reaction.ContentID,
-                        Type:      reaction.Type,
-                })
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.ReactionList{
-                Reactions: pbReactions,
-        }, nil</span>
-}
-
-func (h *FeedHandlers) DeleteReaction(ctx context.Context, req *feedpb.DeleteReactionRequest) (*feedpb.FeedResponse, error) <span class="cov0" title="0">{
-        if req.UserId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid user ID")
-        }</span>
-        <span class="cov0" title="0">if req.ContentId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid content ID")
-        }</span>
-
-        // Call the service method to delete reaction
-        <span class="cov0" title="0">err := h.FeedSvc.DeleteReaction(ctx, req.UserId, req.ContentId)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to delete reaction: %v", err)
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.FeedResponse{
-                Message: "Reaction deleted successfully",
-        }, nil</span>
-}
-
-func (h *FeedHandlers) GetMediaRef(ctx context.Context, req *feedpb.ContentID) (*feedpb.MediaResponse, error) <span class="cov0" title="0">{
-        if req.ContentId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid media reference ID")
-        }</span>
-
-        // Call the service method to get media reference
-        <span class="cov0" title="0">mediaRef, err := h.FeedSvc.GetMediaRef(ctx, req.ContentId)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to get media reference: %v", err)
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.MediaResponse{
-
-                MediaRefId: mediaRef.MediaRefID,
-                FilePath:   mediaRef.FilePath,
-        }, nil</span>
-}
-
-func (h *FeedHandlers) GetContent(ctx context.Context, req *feedpb.ContentID) (*feedpb.FeedResponse, error) <span class="cov8" title="1">{
-        if req.ContentId &lt;= 0 </span><span class="cov8" title="1">{
-                return nil, status.Error(codes.InvalidArgument, "invalid content ID")
-        }</span>
-
-        // Call the service method to get content
-        <span class="cov0" title="0">content, url, err := h.FeedSvc.GetContent(ctx, req.ContentId)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to get content: %v", err)
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.FeedResponse{
-                ContentId: content.ContentID,
-                MediaUrl:  url,
-                Message:   *content.TextContent,
-        }, nil</span>
-}
-
-func (h *FeedHandlers) DeleteContent(ctx context.Context, req *feedpb.ContentID) (*feedpb.FeedResponse, error) <span class="cov0" title="0">{
-        if req.ContentId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid content ID")
-        }</span>
-
-        // Call the service method to delete content
-        <span class="cov0" title="0">err := h.FeedSvc.DeleteContent(ctx, req.ContentId)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to delete content: %v", err)
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.FeedResponse{
-                Message: "Content deleted successfully",
-        }, nil</span>
-}
-
-func safeString(s *string) string <span class="cov8" title="1">{
-        if s == nil </span><span class="cov0" title="0">{
-                return ""
-        }</span>
-        <span class="cov8" title="1">return *s</span>
-}
-
-func (h *FeedHandlers) GetTimeline(ctx context.Context, req *feedpb.UserID) (*feedpb.TimelineResponse, error) <span class="cov8" title="1">{
-        if req.UserId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid user ID")
-        }</span>
-
-        // Call the service method to get timeline
-        <span class="cov8" title="1">contents, urls, err := h.FeedSvc.GetTimeline(ctx, req.UserId)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to get timeline: %v", err)
-        }</span>
-
-        <span class="cov8" title="1">var pbContents []*feedpb.TimelineContent
-
-        for i, content := range contents </span><span class="cov8" title="1">{
-                pbContents = append(pbContents, &amp;feedpb.TimelineContent{
-                        ContentId: content.ContentID,
-                        AuthorId:  content.AuthorID,
-                        Type:      content.Type,
-                        Text:      safeString(content.TextContent),
-                        MediaUrl:  urls[i],
-                        Privacy:   content.Privacy,
-                        CreatedAt: timestamppb.New(content.CreatedAt),
-                })
-        }</span>
-
-        <span class="cov8" title="1">return &amp;feedpb.TimelineResponse{
-                Contents: pbContents,
-        }, nil</span>
-}
-
-func (h *FeedHandlers) GetUserContent(ctx context.Context, req *feedpb.GetUserContentRequest) (*feedpb.TimelineResponse, error) <span class="cov0" title="0">{
-        if req.RequesterId &lt;= 0 || req.TargetUserId &lt;= 0 </span><span class="cov0" title="0">{
-                return nil, status.Error(codes.InvalidArgument, "invalid user IDs")
-        }</span>
-
-        // Call the service method to get user content
-        <span class="cov0" title="0">contents, urls, err := h.FeedSvc.GetUserContent(ctx, req.RequesterId, req.TargetUserId)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, status.Errorf(codes.Internal, "failed to get user content: %v", err)
-        }</span>
-
-        <span class="cov0" title="0">var pbContents []*feedpb.TimelineContent
-
-        for i, content := range contents </span><span class="cov0" title="0">{
-                pbContents = append(pbContents, &amp;feedpb.TimelineContent{
-                        ContentId: content.ContentID,
-                        AuthorId:  content.AuthorID,
-                        Type:      content.Type,
-                        Text:      safeString(content.TextContent),
-                        MediaUrl:  urls[i],
-                        Privacy:   content.Privacy,
-                        CreatedAt: timestamppb.New(content.CreatedAt),
-                })
-        }</span>
-
-        <span class="cov0" title="0">return &amp;feedpb.TimelineResponse{
-                Contents: pbContents,
-        }, nil</span>
-}
-</pre>
-		
-		<pre class="file" id="file1" style="display: none">package feed
-
-import (
-        "GoSocial/internal/dbmongo"
-        "GoSocial/internal/dbmysql"
-        "context"
-        "gorm.io/gorm"
-        "time"
-)
-
-type FeedRepository struct {
-        gridClient *dbmongo.GridFSClient
-        db         *gorm.DB
-}
-
-func NewFeedRepository(db *gorm.DB, gridclient *dbmongo.GridFSClient) *FeedRepository <span class="cov8" title="1">{
-        return &amp;FeedRepository{db: db, gridClient: gridclient}
-}</span>
-
-// --------- CONTENT ---------
-type Content interface {
-        CreateContent(ctx context.Context, content *dbmysql.Content) error
-        GetContentByID(ctx context.Context, id int64) (*dbmysql.Content, error)
-        ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error)
-        DeleteContent(ctx context.Context, id int64) error
-        ListExpiredStories(ctx context.Context, now time.Time) ([]dbmysql.Content, error)
-}
-
-func (r *FeedRepository) CreateContent(ctx context.Context, content *dbmysql.Content) error <span class="cov8" title="1">{
-        return r.db.WithContext(ctx).Create(content).Error
-}</span>
-
-func (r *FeedRepository) GetContentByID(ctx context.Context, id int64) (*dbmysql.Content, error) <span class="cov8" title="1">{
-        var content dbmysql.Content
-        err := r.db.WithContext(ctx).First(&amp;content, "content_id = ?", id).Error
-        return &amp;content, err
-}</span>
-
-func (r *FeedRepository) ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error) <span class="cov8" title="1">{
-        var contents []dbmysql.Content
-        err := r.db.WithContext(ctx).
-                Where("author_id = ?", userID).
-                Order("created_at DESC").
-                Find(&amp;contents).Error
-        return contents, err
-}</span>
-
-func (r *FeedRepository) DeleteContent(ctx context.Context, id int64) error <span class="cov8" title="1">{
-        return r.db.WithContext(ctx).Delete(&amp;dbmysql.Content{}, "content_id = ?", id).Error
-}</span>
-
-// --------- MEDIA REF ---------
-type MediaRef interface {
-        CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) error
-        GetMediaRefByID(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error)
-        DeleteMedia(ctx context.Context, mediaRefID int64) error
-}
-
-func (r *FeedRepository) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) error <span class="cov8" title="1">{
-        // Step 1: Upload file to GridFS
-        fileID, err := r.gridClient.UploadFile(ctx, media.FileName, fileData)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        // Step 2: Store fileID in SQL media_ref.file_path
-        <span class="cov8" title="1">media.FilePath = fileID.Hex() // Assuming fileID is an ObjectID and we store its hex representation
-        media.UploadedAt = time.Now()
-        media.SizeBytes = int64(len(fileData))
-
-        // Step 3: Save metadata to MySQL
-        return r.db.WithContext(ctx).Create(media).Error</span>
-}
-
-func (r *FeedRepository) GetMediaRefByID(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error) <span class="cov8" title="1">{
-        var media dbmysql.MediaRef
-
-        // Step 1: Get media metadata from SQL
-        err := r.db.WithContext(ctx).First(&amp;media, "media_ref_id = ?", id).Error
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, nil, err
-        }</span>
-
-        // Step 2: Get actual file content from Mongo GridFS using file path (ObjectID)
-        <span class="cov8" title="1">fileData, err := r.gridClient.GetFileByID(ctx, media.FilePath)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, nil, err
-        }</span>
-
-        <span class="cov8" title="1">return &amp;media, fileData, nil</span>
-}
-
-func (r *FeedRepository) DeleteMedia(ctx context.Context, mediaRefID int64) error <span class="cov8" title="1">{
-        // Step 1: Get file path from SQL
-        var media dbmysql.MediaRef
-        err := r.db.WithContext(ctx).First(&amp;media, "media_ref_id = ?", mediaRefID).Error
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        // Step 2: Delete from GridFS
-        <span class="cov8" title="1">if err := r.gridClient.DeleteFile(ctx, media.FilePath); err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        // Step 3: Delete metadata
-        <span class="cov8" title="1">return r.db.WithContext(ctx).Delete(&amp;media).Error</span>
-}
-
-// --------- REACTIONS ---------
-type Reactions interface {
-        AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error
-        GetReactionsForContent(ctx context.Context, contentID int64) ([]dbmysql.Reaction, error)
-        DeleteReaction(ctx context.Context, userID, contentID int64) error
-}
-
-func (r *FeedRepository) AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error <span class="cov8" title="1">{
-        return r.db.WithContext(ctx).Create(reaction).Error
-}</span>
-
-func (r *FeedRepository) GetReactionsForContent(ctx context.Context, contentID int64) ([]dbmysql.Reaction, error) <span class="cov8" title="1">{
-        var reactions []dbmysql.Reaction
-        err := r.db.WithContext(ctx).
-                Where("content_id = ?", contentID).
-                Find(&amp;reactions).Error
-        return reactions, err
-}</span>
-
-func (r *FeedRepository) DeleteReaction(ctx context.Context, userID, contentID int64) error <span class="cov8" title="1">{
-        return r.db.WithContext(ctx).
-                Where("user_id = ? AND content_id = ?", userID, contentID).
-                Delete(&amp;dbmysql.Reaction{}).Error
-}</span>
-
-func (r *FeedRepository) ListExpiredStories(ctx context.Context, now time.Time) ([]dbmysql.Content, error) <span class="cov8" title="1">{
-        var stories []dbmysql.Content
-        err := r.db.WithContext(ctx).
-                Where("type = ? AND expiration IS NOT NULL AND expiration &lt;= ?", "STORY", now).
-                Find(&amp;stories).Error
-        return stories, err
-}</span>
-</pre>
-		
-		<pre class="file" id="file2" style="display: none">package feed
+		<pre class="file" id="file0" style="display: none">// Package handler: this the chat handler
+package handler
 
 import (
         "context"
         "fmt"
-        "sort"
-        "time"
+        "io"
+        "log"
+        "sync"
 
-        userpb "GoSocial/api/v1/user"
-        "GoSocial/internal/dbmysql"
+        pb "gosocial/api/v1/chat" 
+
+        "gosocial/internal/chat/service"
+        "gosocial/internal/dbmysql"
+
+        "google.golang.org/grpc/codes"
+        "google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// media helper to generate media URLs
-var MediaBaseURL = "http://localhost:8080/media/"
-
-func GetMediaURL(fileName string) string <span class="cov8" title="1">{
-        return fmt.Sprintf("%s%s", MediaBaseURL, fileName)
-}</span>
-
-// all functions in this file are higher-order functions that call the core service methods
-type FeedUsecase interface {
-        CreatePost(ctx context.Context, authorID int64, text string, fileData []byte, fileName string, mediaType string, privacy string) (int64, error)
-        CreateReel(ctx context.Context, authorID int64, caption string, fileData []byte, fileName string, durationSecs int, privacy string) (int64, error)
-        CreateStory(ctx context.Context, authorID int64, fileData []byte, mediaType string, mediaName string, durationSec int, privacy string) (int64, error)
-        ReactToContent(ctx context.Context, userID, contentID int64, reactionType string) error
-        GetReactions(ctx context.Context, contentID int64) ([]dbmysql.Reaction, error)
-        DeleteReaction(ctx context.Context, userID, contentID int64) error
-        GetTimeline(ctx context.Context, userID int64) ([]dbmysql.Content, []string, error)
-        GetUserContent(ctx context.Context, requesterID, targetUserID int64) ([]dbmysql.Content, []string, error)
-
-        GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
-
-        GetContent(ctx context.Context, id int64) (*dbmysql.Content, string, error)
-        DeleteContent(ctx context.Context, id int64) error
+type ChatHandler struct {
+        pb.UnimplementedChatServiceServer
+        chatService service.ChatService
+        mu          sync.RWMutex
+        streams     map[string][]pb.ChatService_StreamMessagesServer
 }
 
-type FeedService struct {
-        contentRepo    Content
-        mediaRepo      MediaRef
-        reactionRepo   Reactions
-        UserClient     userpb.UserServiceClient
-        cleanupStarted bool
-}
-
-func NewFeedService(c Content, m MediaRef, r Reactions, u userpb.UserServiceClient) *FeedService <span class="cov0" title="0">{
-        service := &amp;FeedService{
-                contentRepo:  c,
-                mediaRepo:    m,
-                reactionRepo: r,
-                UserClient:   u,
+func NewChatHandler(chatService service.ChatService) *ChatHandler <span class="cov4" title="8">{
+        return &amp;ChatHandler{
+                chatService: chatService,
+                streams: make(map[string][]pb.ChatService_StreamMessagesServer),
         }
-        go service.startExpiredStoryCleaner()
-
-        return service
 }</span>
 
-// --------- CONTENT ---------
+//SendMessages is a method that exists
+func (h *ChatHandler) SendMessages(ctx context.Context, req *pb.SendMessageRequest) (*pb.SendMessageResponse, error) <span class="cov4" title="7">{
+        domainMsg := &amp;dbmysql.Message{
+                ConversationID: req.ConversationId,
+                SenderID: req.SenderId,
+                Content: req.Content,
+        }
 
-// CreateContent creates new content and uploads media if provided.
+        savedMsg, err := h.chatService.SendMessage(ctx, domainMsg)
 
-func (s *FeedService) CreateContent(ctx context.Context, content *dbmysql.Content, fileData []byte, mediatype string, medianame string) (int64, error) <span class="cov8" title="1">{
-        content.CreatedAt = time.Now()
-        content.UpdatedAt = time.Now()
+        if err != nil </span><span class="cov3" title="4">{
+                return nil, fmt.Errorf( "failed to send Message %v : internal codes : %v", err, codes.Internal )
+        }</span>
 
-        // Step 1: Upload media only if file is passed
-        if fileData != nil &amp;&amp; len(fileData) &gt; 0 </span><span class="cov8" title="1">{
-                // Create a temporary MediaRef struct with required fields
-                media := &amp;dbmysql.MediaRef{
-                        Type:       mediatype, // or infer from file
-                        FileName:   medianame, // maybe from HTTP request
-                        UploadedBy: content.AuthorID,
+        <span class="cov2" title="3">protoMsg := &amp;pb.ChatMessage{
+                ConversationId: savedMsg.ConversationID,
+                SenderId: savedMsg.SenderID,
+                Content: savedMsg.Content,
+                SentAt: timestamppb.New(savedMsg.SentAt),
+        }
+
+        h.broadcastToStream(savedMsg.ConversationID, protoMsg)
+
+        return &amp;pb.SendMessageResponse{
+                Success: true,
+                Message: protoMsg,
+        }, nil</span>
+}
+
+func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistoryRequest) (*pb.GetChatHistoryResponse, error) <span class="cov4" title="8">{
+        domainMessages, err := h.chatService.GetMessageHistory(ctx, req.ConversationId)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("Failed to get chat history : %v, Error codes: %v", err, codes.Internal)
+        }</span>
+
+        <span class="cov4" title="7">protoMessages := make([]*pb.ChatMessage, 0, len(domainMessages))
+
+        // ✅ FIX: Safe bounds checking for pagination
+        start := int(req.Offset)
+        limit := int(req.Limit)
+
+        // Handle negative or invalid values
+        if start &lt; 0 </span><span class="cov1" title="1">{
+                start = 0
+        }</span>
+        <span class="cov4" title="7">if limit &lt;= 0 </span><span class="cov2" title="2">{
+                return &amp;pb.GetChatHistoryResponse{Messages: []*pb.ChatMessage{}}, nil
+        }</span>
+
+        // Check if start is beyond available messages
+        <span class="cov3" title="5">if start &gt;= len(domainMessages) </span><span class="cov2" title="2">{
+                return &amp;pb.GetChatHistoryResponse{Messages: []*pb.ChatMessage{}}, nil
+        }</span>
+
+        <span class="cov2" title="3">end := start + limit
+        if end &gt; len(domainMessages) </span><span class="cov1" title="1">{
+                end = len(domainMessages)
+        }</span>
+
+        // Now safe to slice
+        <span class="cov2" title="3">for _, msg := range domainMessages[start:end] </span><span class="cov3" title="5">{
+                protoMessage := &amp;pb.ChatMessage{
+                        ConversationId: msg.ConversationID,
+                        SenderId:       msg.SenderID,
+                        Content:        msg.Content,
+                        SentAt:         timestamppb.New(msg.SentAt),
                 }
+                protoMessages = append(protoMessages, protoMessage)
+        }</span>
 
-                // Upload media and persist
-                if err := s.mediaRepo.CreateMediaRef(ctx, media, fileData); err != nil </span><span class="cov0" title="0">{
-                        return 0, err
-                }</span>
+        <span class="cov2" title="3">return &amp;pb.GetChatHistoryResponse{
+                Messages: protoMessages,
+        }, nil</span>
+}
 
-                // Link saved media_ref_id back to content
-                <span class="cov8" title="1">content.MediaRefID = &amp;media.MediaRefID</span>
+
+func (h *ChatHandler) StreamMessages(stream pb.ChatService_StreamMessagesServer) error <span class="cov0" title="0">{
+        var conversationID string
+
+        go func()</span><span class="cov0" title="0">{
+                for </span><span class="cov0" title="0">{
+                        protoMsg, err := stream.Recv()
+                        if err == io.EOF </span><span class="cov0" title="0">{
+                                break</span>
+                        }
+                        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                                log.Printf("Error reciving Messages: %v", err)
+                                break</span>
+                        }
+                        <span class="cov0" title="0">if conversationID == "" </span><span class="cov0" title="0">{
+                                conversationID = protoMsg.ConversationId
+                                h.mu.Lock()
+                                h.streams[conversationID] = append(h.streams[conversationID], stream)
+                                h.mu.Unlock()
+                        }</span>
+
+                        <span class="cov0" title="0">domainMsg := &amp;dbmysql.Message{
+                                ConversationID: protoMsg.ConversationId,
+                                SenderID: protoMsg.SenderId,
+                                Content: protoMsg.Content,
+                        } 
+
+                        savedMsg, err := h.chatService.SendMessage(stream.Context(), domainMsg)
+
+                        if err != nil </span><span class="cov0" title="0">{
+                                log.Printf("Failed to save Steamed Messages: %v", err)
+                                continue</span>
+                        }
+
+                        <span class="cov0" title="0">brodcastMsg := &amp;pb.ChatMessage{
+                                ConversationId: savedMsg.ConversationID,
+                                SenderId: savedMsg.SenderID,
+                                Content: savedMsg.Content,
+                                SentAt: timestamppb.New(savedMsg.SentAt),
+                        }
+                        h.broadcastToStream(savedMsg.ConversationID, brodcastMsg)</span>
+                }
+        }()
+
+        <span class="cov0" title="0">select </span>{
+        case &lt;-stream.Context().Done():<span class="cov0" title="0">
+                h.removeStream(conversationID, stream)
+                return stream.Context().Err()</span>
         }
-
-        // Step 2: Save content to MySQL
-        <span class="cov8" title="1">if err := s.contentRepo.CreateContent(ctx, content); err != nil </span><span class="cov0" title="0">{
-                return 0, err
-        }</span>
-
-        <span class="cov8" title="1">return content.ContentID, nil</span>
 }
 
-// func (s *FeedService) GetContent(ctx context.Context, id int64) (*dbmysql.Content, error) {
-//         return s.contentRepo.GetContentByID(ctx, id)
-// }
+func (h *ChatHandler) broadcastToStream(conversationID string, msg *pb.ChatMessage) <span class="cov10" title="268">{
+        h.mu.RLock()
+        streams, ok := h.streams[conversationID]
+        h.mu.RUnlock()
 
-func (s *FeedService) GetContent(ctx context.Context, id int64) (*dbmysql.Content, string, error) <span class="cov8" title="1">{
-        // Step 1: Get content
-        content, err := s.contentRepo.GetContentByID(ctx, id)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, "", err
-        }</span>
-
-        // Step 2: Get media URL (if present)
-        <span class="cov8" title="1">var mediaURL string
-        if content.MediaRefID != nil </span><span class="cov8" title="1">{
-                mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *content.MediaRefID)
-                if err == nil </span><span class="cov8" title="1">{
-                        mediaURL = GetMediaURL(mediaMeta.FilePath) // FilePath = GridFS ObjectID
-                }</span>
-        }
-
-        // Step 3: Return content + optional media URL
-        <span class="cov8" title="1">return content, mediaURL, nil</span>
-}
-
-func (s *FeedService) ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error) <span class="cov0" title="0">{
-        return s.contentRepo.ListUserContent(ctx, userID)
-}</span>
-
-// DeleteContent deletes content and its associated media if present.
-
-func (s *FeedService) DeleteContent(ctx context.Context, id int64) error <span class="cov8" title="1">{
-        // Step 1: Load content to get media_ref_id
-        content, err := s.contentRepo.GetContentByID(ctx, id)
-        if err != nil </span><span class="cov0" title="0">{
-                return err
-        }</span>
-
-        // Step 2: Delete associated media if present
-        <span class="cov8" title="1">if content.MediaRefID != nil </span><span class="cov8" title="1">{
-                _ = s.mediaRepo.DeleteMedia(ctx, *content.MediaRefID) // Don't fail content delete if this fails
-        }</span>
-
-        // Step 3: Delete content
-        <span class="cov8" title="1">return s.contentRepo.DeleteContent(ctx, id)</span>
-}
-
-// --------- MEDIA REF ---------
-
-func (s *FeedService) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) (int64, error) <span class="cov0" title="0">{
-        media.UploadedAt = time.Now()
-        err := s.mediaRepo.CreateMediaRef(ctx, media, fileData)
-        return media.MediaRefID, err
-}</span>
-
-func (s *FeedService) GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error) <span class="cov0" title="0">{
-        return s.mediaRepo.GetMediaRefByID(ctx, id)
-}</span>
-
-// --------- REACTIONS ---------
-
-func (s *FeedService) AddReaction(ctx context.Context, reaction *dbmysql.Reaction) error <span class="cov8" title="1">{
-        reaction.CreatedAt = time.Now()
-        return s.reactionRepo.AddReaction(ctx, reaction)
-}</span>
-
-func (s *FeedService) GetReactions(ctx context.Context, contentID int64) ([]dbmysql.Reaction, error) <span class="cov0" title="0">{
-        return s.reactionRepo.GetReactionsForContent(ctx, contentID)
-}</span>
-
-func (s *FeedService) DeleteReaction(ctx context.Context, userID, contentID int64) error <span class="cov8" title="1">{
-        return s.reactionRepo.DeleteReaction(ctx, userID, contentID)
-}</span>
-
-func (s *FeedService) GetUserFriendIDs(ctx context.Context, userID int64) ([]int64, error) <span class="cov0" title="0">{
-        resp, err := s.UserClient.ListFriends(ctx, &amp;userpb.UserID{UserId: userID})
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("ListFriends failed: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">friendIDs := make([]int64, 0, len(resp.Friends))
-        for _, f := range resp.Friends </span><span class="cov0" title="0">{
-                friendIDs = append(friendIDs, f.UserId)
-        }</span>
-        <span class="cov0" title="0">return friendIDs, nil</span>
-}
-
-func (s *FeedService) startExpiredStoryCleaner() <span class="cov0" title="0">{
-        if s.cleanupStarted </span><span class="cov0" title="0">{
+        if !ok </span><span class="cov10" title="268">{
                 return
         }</span>
-        <span class="cov0" title="0">s.cleanupStarted = true
 
-        ticker := time.NewTicker(10 * time.Minute) // ⏱️ runs every 10 minutes
-        for </span><span class="cov0" title="0">{
-                &lt;-ticker.C
-
-                go func() </span><span class="cov0" title="0">{
-                        now := time.Now()
-                        expired, err := s.contentRepo.ListExpiredStories(context.Background(), now)
-                        if err != nil </span><span class="cov0" title="0">{
-                                fmt.Println("Failed to fetch expired stories:", err)
-                                return
-                        }</span>
-
-                        <span class="cov0" title="0">for _, story := range expired </span><span class="cov0" title="0">{
-                                if err := s.DeleteContent(context.Background(), story.ContentID); err != nil </span><span class="cov0" title="0">{
-                                        fmt.Printf("Failed to delete expired story %d: %v\n", story.ContentID, err)
-                                }</span>
-                        }
-                }()
+        <span class="cov0" title="0">for _, stream := range streams </span><span class="cov0" title="0">{
+                if err := stream.Send(msg); err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Failed to print stream: %v", err)
+                        //TODO: Remove failed steams
+                }</span>
         }
 }
 
-// -----------higher-order functions-----------
+func (h *ChatHandler) removeStream(conversationID string, stream pb.ChatService_StreamMessagesServer) <span class="cov9" title="168">{
+        h.mu.Lock()
+        defer h.mu.Unlock()
 
-func (s *FeedService) CreatePost(
-        ctx context.Context,
-        authorID int64,
-        text string,
-        fileData []byte,
-        fileName string,
-        mediaType string,
-        privacy string,
-) (int64, error) <span class="cov8" title="1">{
-
-        content := &amp;dbmysql.Content{
-                AuthorID:    authorID,
-                Type:        "POST",
-                TextContent: &amp;text,
-                Privacy:     privacy,
-        }
-
-        // Just reuse the existing core service logic
-        return s.CreateContent(ctx, content, fileData, mediaType, fileName)
-}</span>
-
-func (s *FeedService) CreateReel(
-        ctx context.Context,
-        authorID int64,
-        caption string,
-        fileData []byte,
-        fileName string,
-        durationSecs int,
-        privacy string,
-) (int64, error) <span class="cov0" title="0">{
-
-        // Validate inputs if needed (e.g., ensure fileData is a video)
-
-        content := &amp;dbmysql.Content{
-                AuthorID:    authorID,
-                Type:        "REEL",
-                TextContent: &amp;caption,
-                Privacy:     privacy,
-                Duration:    &amp;durationSecs,
-        }
-
-        return s.CreateContent(ctx, content, fileData, "video", fileName)
-}</span>
-
-func (s *FeedService) CreateStory(
-        ctx context.Context,
-        authorID int64,
-        fileData []byte,
-        mediaType string,
-        mediaName string,
-        durationSec int,
-        privacy string,
-) (int64, error) <span class="cov0" title="0">{
-        content := &amp;dbmysql.Content{
-                AuthorID: authorID,
-                Type:     "STORY",
-                Privacy:  privacy,
-        }
-        duration := durationSec
-        content.Duration = &amp;duration
-        expiration := content.CreatedAt.Add(time.Duration(durationSec) * time.Second)
-        content.Expiration = &amp;expiration
-
-        // Call common content creation logic
-        return s.CreateContent(ctx, content, fileData, mediaType, mediaName)
-}</span>
-
-func (s *FeedService) ReactToContent(ctx context.Context, userID, contentID int64, reactionType string) error <span class="cov8" title="1">{
-        // Step 1: Delete existing reaction if any
-        _ = s.DeleteReaction(ctx, userID, contentID) // Ignore error if not found
-
-        // Step 2: Add new reaction
-        reaction := &amp;dbmysql.Reaction{
-                UserID:    userID,
-                ContentID: contentID,
-                Type:      reactionType,
-                CreatedAt: time.Now(),
-        }
-        return s.AddReaction(ctx, reaction)
-}</span>
-
-func (s *FeedService) GetTimeline(ctx context.Context, userID int64) ([]dbmysql.Content, []string, error) <span class="cov0" title="0">{
-        // Step 1: Get friend IDs
-        friendResp, err := s.UserClient.ListFriends(ctx, &amp;userpb.UserID{UserId: userID})
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, nil, fmt.Errorf("failed to fetch friends: %w", err)
+        streams, ok := h.streams[conversationID]
+        if !ok </span><span class="cov9" title="168">{
+                return
         }</span>
-
-        <span class="cov0" title="0">userIDs := []int64{userID}
-        for _, f := range friendResp.Friends </span><span class="cov0" title="0">{
-                userIDs = append(userIDs, f.UserId)
-        }</span>
-
-        // Step 2: Collect content
-        <span class="cov0" title="0">var allContent []dbmysql.Content
-        var allURLs []string
-
-        for _, uid := range userIDs </span><span class="cov0" title="0">{
-                contentList, err := s.contentRepo.ListUserContent(ctx, uid)
-                if err != nil </span><span class="cov0" title="0">{
-                        continue</span>
-                }
-                <span class="cov0" title="0">for _, c := range contentList </span><span class="cov0" title="0">{
-                        allContent = append(allContent, c)
-
-                        if c.MediaRefID != nil </span><span class="cov0" title="0">{
-                                mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
-                                if err == nil </span><span class="cov0" title="0">{
-                                        allURLs = append(allURLs, GetMediaURL(mediaMeta.FilePath))
-                                }</span> else<span class="cov0" title="0"> {
-                                        allURLs = append(allURLs, "")
-                                }</span>
-                        } else<span class="cov0" title="0"> {
-                                allURLs = append(allURLs, "")
-                        }</span>
-                }
-        }
-
-        // Step 3: Sort
-        <span class="cov0" title="0">sort.SliceStable(allContent, func(i, j int) bool </span><span class="cov0" title="0">{
-                return allContent[i].CreatedAt.After(allContent[j].CreatedAt)
-        }</span>)
-
-        <span class="cov0" title="0">return allContent, allURLs, nil</span>
-}
-
-func (s *FeedService) GetUserContent(ctx context.Context, requesterID, targetUserID int64) ([]dbmysql.Content, []string, error) <span class="cov8" title="1">{
-        // Step 1: Fetch all content
-        allContent, err := s.contentRepo.ListUserContent(ctx, targetUserID)
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, nil, err
-        }</span>
-
-        // Step 2: Self view
-        <span class="cov8" title="1">if requesterID == targetUserID </span><span class="cov8" title="1">{
-                var urls []string
-                for _, c := range allContent </span><span class="cov8" title="1">{
-                        if c.MediaRefID != nil </span><span class="cov8" title="1">{
-                                mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
-                                if err == nil </span><span class="cov8" title="1">{
-                                        urls = append(urls, GetMediaURL(mediaMeta.FilePath))
-                                }</span> else<span class="cov0" title="0"> {
-                                        urls = append(urls, "")
-                                }</span>
-                        } else<span class="cov8" title="1"> {
-                                urls = append(urls, "")
-                        }</span>
-                }
-                <span class="cov8" title="1">return allContent, urls, nil</span>
-        }
-
-        // Step 3: Friendship check
-        <span class="cov0" title="0">friendResp, err := s.UserClient.ListFriends(ctx, &amp;userpb.UserID{UserId: targetUserID})
-        if err != nil </span><span class="cov0" title="0">{
-                return nil, nil, fmt.Errorf("failed to fetch friends: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">isFriend := false
-        for _, f := range friendResp.Friends </span><span class="cov0" title="0">{
-                if f.UserId == requesterID </span><span class="cov0" title="0">{
-                        isFriend = true
+        <span class="cov0" title="0">for i, st := range streams </span><span class="cov0" title="0">{
+                if st == stream </span><span class="cov0" title="0">{
+                        h.streams[conversationID] = append(streams[:i], streams[i+1:]...)
                         break</span>
                 }
         }
-
-        // Step 4: Filter + media URLs
-        <span class="cov0" title="0">var filtered []dbmysql.Content
-        var mediaURLs []string
-
-        for _, c := range allContent </span><span class="cov0" title="0">{
-                if c.Privacy == "public" || (c.Privacy == "friends" &amp;&amp; isFriend) </span><span class="cov0" title="0">{
-                        filtered = append(filtered, c)
-
-                        if c.MediaRefID != nil </span><span class="cov0" title="0">{
-                                mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
-                                if err == nil </span><span class="cov0" title="0">{
-                                        mediaURLs = append(mediaURLs, GetMediaURL(mediaMeta.FilePath))
-                                }</span> else<span class="cov0" title="0"> {
-                                        mediaURLs = append(mediaURLs, "")
-                                }</span>
-                        } else<span class="cov0" title="0"> {
-                                mediaURLs = append(mediaURLs, "")
-                        }</span>
-                }
-        }
-
-        <span class="cov0" title="0">return filtered, mediaURLs, nil</span>
 }
+
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: ../service/chat_service.go
+//
+// Generated by this command:
+//
+//        mockgen -source=../service/chat_service.go -destination=mocks/mock_chat_service.go
+//
+
+// Package mock_service is a generated GoMock package.
+package mocks 
+
+import (
+        context "context"
+        dbmysql "gosocial/internal/dbmysql"
+        reflect "reflect"
+
+        gomock "go.uber.org/mock/gomock"
+)
+
+// MockChatService is a mock of ChatService interface.
+type MockChatService struct {
+        ctrl     *gomock.Controller
+        recorder *MockChatServiceMockRecorder
+        isgomock struct{}
+}
+
+// MockChatServiceMockRecorder is the mock recorder for MockChatService.
+type MockChatServiceMockRecorder struct {
+        mock *MockChatService
+}
+
+// NewMockChatService creates a new mock instance.
+func NewMockChatService(ctrl *gomock.Controller) *MockChatService <span class="cov7" title="8">{
+        mock := &amp;MockChatService{ctrl: ctrl}
+        mock.recorder = &amp;MockChatServiceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockChatService) EXPECT() *MockChatServiceMockRecorder <span class="cov10" title="15">{
+        return m.recorder
+}</span>
+
+// GetMessageHistory mocks base method.
+func (m *MockChatService) GetMessageHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error) <span class="cov7" title="8">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetMessageHistory", ctx, conversationID)
+        ret0, _ := ret[0].([]*dbmysql.Message)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// GetMessageHistory indicates an expected call of GetMessageHistory.
+func (mr *MockChatServiceMockRecorder) GetMessageHistory(ctx, conversationID any) *gomock.Call <span class="cov7" title="8">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMessageHistory", reflect.TypeOf((*MockChatService)(nil).GetMessageHistory), ctx, conversationID)
+}</span>
+
+// SendMessage mocks base method.
+func (m *MockChatService) SendMessage(ctx context.Context, msg *dbmysql.Message) (*dbmysql.Message, error) <span class="cov7" title="7">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "SendMessage", ctx, msg)
+        ret0, _ := ret[0].(*dbmysql.Message)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// SendMessage indicates an expected call of SendMessage.
+func (mr *MockChatServiceMockRecorder) SendMessage(ctx, msg any) *gomock.Call <span class="cov7" title="7">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockChatService)(nil).SendMessage), ctx, msg)
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package repository
+
+import (
+        "context"
+        "gorm.io/gorm"
+        _ "gorm.io/gorm"
+        //"gosocial/internal/chat/models"
+        "gosocial/internal/dbmysql"
+)
+
+type ChatRepository interface {
+        Save(ctx context.Context, msg *dbmysql.Message) error
+        FetchHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error)
+}
+
+type chatRepo struct {
+        db *gorm.DB
+}
+
+func NewChatRepository(db *gorm.DB) ChatRepository <span class="cov10" title="4">{
+        return &amp;chatRepo{
+                db: db,
+        }
+}</span>
+
+func (r *chatRepo) Save(ctx context.Context, msg *dbmysql.Message) error <span class="cov5" title="2">{
+        return r.db.WithContext(ctx).Create(msg).Error
+}</span>
+
+func (r *chatRepo) FetchHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error) <span class="cov5" title="2">{
+        var messages []*dbmysql.Message
+        return messages, r.db.Where("conversation_id = ?", conversationID).Find(&amp;messages).Error
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package service
+
+import (
+        "context"
+        "errors"
+        "gosocial/internal/chat/repository"
+        "gosocial/internal/dbmysql"
+        "time"
+)
+
+// ChatService defines 
+type ChatService interface {
+        SendMessage(ctx context.Context, msg *dbmysql.Message) (*dbmysql.Message, error)
+        GetMessageHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error)
+}
+
+type chatService struct {
+        repo repository.ChatRepository
+}
+
+// Constructor used in DI/wire
+func NewChatService(r repository.ChatRepository) ChatService <span class="cov6" title="2">{
+        return &amp;chatService{repo: r}
+}</span>
+
+// SendMessage handles message validation and saving
+func (s *chatService) SendMessage(ctx context.Context, msg *dbmysql.Message) (*dbmysql.Message, error) <span class="cov10" title="3">{
+        // Input Validation
+        if msg.ConversationID == "" </span><span class="cov1" title="1">{
+                return nil, errors.New("conversation ID cannot be empty")
+        }</span>
+        <span class="cov6" title="2">if msg.SenderID == "" </span><span class="cov0" title="0">{
+                return nil, errors.New("sender ID cannot be empty")
+        }</span>
+        <span class="cov6" title="2">if msg.Content == "" </span><span class="cov0" title="0">{
+                return nil, errors.New("message content cannot be empty")
+        }</span>
+
+        // Set server-side timestamp
+        <span class="cov6" title="2">msg.SentAt = time.Now().UTC()
+
+        // Save to DB via repository
+        err := s.repo.Save(ctx, msg)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov1" title="1">return msg, nil</span>
+}
+
+// GetMessageHistory returns full message history of a conversation
+func (s *chatService) GetMessageHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error) <span class="cov6" title="2">{
+        if conversationID == "" </span><span class="cov1" title="1">{
+                return nil, errors.New("conversation ID is required")
+        }</span>
+
+        <span class="cov1" title="1">return s.repo.FetchHistory(ctx, conversationID)</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: ../repository/chat_repository.go
+//
+// Generated by this command:
+//
+//        mockgen -source=../repository/chat_repository.go -destination=mocks/mock_chat_repository.go
+//
+
+// Package mock_repository is a generated GoMock package.
+package mocks 
+
+import (
+        context "context"
+        dbmysql "gosocial/internal/dbmysql"
+        reflect "reflect"
+
+        gomock "go.uber.org/mock/gomock"
+)
+
+// MockChatRepository is a mock of ChatRepository interface.
+type MockChatRepository struct {
+        ctrl     *gomock.Controller
+        recorder *MockChatRepositoryMockRecorder
+        isgomock struct{}
+}
+
+// MockChatRepositoryMockRecorder is the mock recorder for MockChatRepository.
+type MockChatRepositoryMockRecorder struct {
+        mock *MockChatRepository
+}
+
+// NewMockChatRepository creates a new mock instance.
+func NewMockChatRepository(ctrl *gomock.Controller) *MockChatRepository <span class="cov6" title="2">{
+        mock := &amp;MockChatRepository{ctrl: ctrl}
+        mock.recorder = &amp;MockChatRepositoryMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockChatRepository) EXPECT() *MockChatRepositoryMockRecorder <span class="cov10" title="3">{
+        return m.recorder
+}</span>
+
+// FetchHistory mocks base method.
+func (m *MockChatRepository) FetchHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error) <span class="cov1" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "FetchHistory", ctx, conversationID)
+        ret0, _ := ret[0].([]*dbmysql.Message)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// FetchHistory indicates an expected call of FetchHistory.
+func (mr *MockChatRepositoryMockRecorder) FetchHistory(ctx, conversationID any) *gomock.Call <span class="cov1" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchHistory", reflect.TypeOf((*MockChatRepository)(nil).FetchHistory), ctx, conversationID)
+}</span>
+
+// Save mocks base method.
+func (m *MockChatRepository) Save(ctx context.Context, msg *dbmysql.Message) error <span class="cov6" title="2">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Save", ctx, msg)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// Save indicates an expected call of Save.
+func (mr *MockChatRepositoryMockRecorder) Save(ctx, msg any) *gomock.Call <span class="cov6" title="2">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Save", reflect.TypeOf((*MockChatRepository)(nil).Save), ctx, msg)
+}</span>
 </pre>
 		
 		</div>

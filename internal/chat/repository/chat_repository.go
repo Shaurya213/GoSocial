@@ -3,9 +3,8 @@ package repository
 import (
 	"context"
 	"gorm.io/gorm"
-	_ "gorm.io/gorm"
-	//"gosocial/internal/chat/models"
-	"GoSocial/internal/dbmysql"
+	
+	"gosocial/internal/dbmysql"
 )
 
 type ChatRepository interface {
@@ -14,6 +13,7 @@ type ChatRepository interface {
 }
 
 type chatRepo struct {
+	migrated bool
 	db *gorm.DB
 }
 

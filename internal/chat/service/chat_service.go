@@ -1,14 +1,14 @@
 package service
 
 import (
-	"GoSocial/internal/chat/repository"
-	"GoSocial/internal/dbmysql"
 	"context"
 	"errors"
+	"gosocial/internal/chat/repository"
+	"gosocial/internal/dbmysql"
 	"time"
 )
 
-// ChatService defines the interface exposed to the handler layer
+// ChatService defines 
 type ChatService interface {
 	SendMessage(ctx context.Context, msg *dbmysql.Message) (*dbmysql.Message, error)
 	GetMessageHistory(ctx context.Context, conversationID string) ([]*dbmysql.Message, error)
