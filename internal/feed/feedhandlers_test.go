@@ -8,6 +8,7 @@ import (
 
 	feedpb "GoSocial/api/v1/feed"
 	"GoSocial/internal/dbmysql"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -416,6 +417,114 @@ func TestHandlers_ErrorBranches(t *testing.T) {
 	for _, c := range cases {
 		if err := c.call(h); status.Code(err) != codes.Internal {
 			t.Errorf("%s: expected Internal, got %v", c.name, err)
+		}
+	}
+}
+func TestHandlers_ServiceInternalErrors(t *testing.T) {
+	ff := &fakeFeedSvc{
+		GetContentFn: func(context.Context, int64) (*dbmysql.Content, string, error) {
+			return nil, "", errors.New("fail-content")
+		},
+		GetMediaRefFn: func(context.Context, int64) (*dbmysql.MediaRef, error) {
+			return nil, errors.New("fail-media")
+		},
+		GetTimelineFn: func(context.Context, int64) ([]dbmysql.Content, []string, error) {
+			return nil, nil, errors.New("fail-timeline")
+		},
+		GetUserContentFn: func(context.Context, int64, int64) ([]dbmysql.Content, []string, error) {
+			return nil, nil, errors.New("fail-usercontent")
+		},
+	}
+	h := newHandlers(ff)
+
+	if _, err := h.GetContent(context.Background(), &feedpb.ContentID{ContentId: 1}); status.Code(err) != codes.Internal {
+		t.Errorf("GetContent: expected Internal, got %v", err)
+	}
+	if _, err := h.GetMediaRef(context.Background(), &feedpb.ContentID{ContentId: 2}); status.Code(err) != codes.Internal {
+		t.Errorf("GetMediaRef: expected Internal, got %v", err)
+	}
+	if _, err := h.GetTimeline(context.Background(), &feedpb.UserID{UserId: 3}); status.Code(err) != codes.Internal {
+		t.Errorf("GetTimeline: expected Internal, got %v", err)
+	}
+	if _, err := h.GetUserContent(context.Background(),
+		&feedpb.GetUserContentRequest{RequesterId: 1, TargetUserId: 2}); status.Code(err) != codes.Internal {
+		t.Errorf("GetUserContent: expected Internal, got %v", err)
+	}
+}
+
+// --- Covers all handler happy paths that were previously 0.0% ---
+
+func TestHandlers_AllHappyPaths(t *testing.T) {
+	ff := &fakeFeedSvc{
+		CreatePostFn: func(context.Context, int64, string, []byte, string, string, string) (int64, error) {
+			return 101, nil
+		},
+		CreateReelFn: func(context.Context, int64, string, []byte, string, int, string) (int64, error) {
+			return 202, nil
+		},
+		CreateStoryFn: func(context.Context, int64, []byte, string, string, int, string) (int64, error) {
+			return 303, nil
+		},
+		ReactToContentFn: func(context.Context, int64, int64, string) error { return nil },
+		GetReactionsFn: func(context.Context, int64) ([]dbmysql.Reaction, error) {
+			return []dbmysql.Reaction{{UserID: 1, ContentID: 2, Type: "like"}}, nil
+		},
+		DeleteReactionFn: func(context.Context, int64, int64) error { return nil },
+		GetMediaRefFn: func(context.Context, int64) (*dbmysql.MediaRef, error) {
+			return &dbmysql.MediaRef{MediaRefID: 1, FilePath: "file", Type: "image"}, nil
+		},
+		GetContentFn: func(context.Context, int64) (*dbmysql.Content, string, error) {
+			txt := "sample"
+			return &dbmysql.Content{ContentID: 5, TextContent: &txt}, "url://content", nil
+		},
+		DeleteContentFn: func(context.Context, int64) error { return nil },
+		GetTimelineFn: func(context.Context, int64) ([]dbmysql.Content, []string, error) {
+			return []dbmysql.Content{{ContentID: 7, AuthorID: 1, Privacy: "public", CreatedAt: time.Now()}}, []string{"url://tl"}, nil
+		},
+		GetUserContentFn: func(context.Context, int64, int64) ([]dbmysql.Content, []string, error) {
+			return []dbmysql.Content{{ContentID: 9, AuthorID: 2, Privacy: "public", CreatedAt: time.Now()}}, []string{"url://uc"}, nil
+		},
+	}
+	h := newHandlers(ff)
+
+	cases := []struct {
+		name string
+		run  func() error
+	}{
+		{"CreatePost", func() error {
+			_, e := h.CreatePost(context.Background(), &feedpb.CreatePostRequest{AuthorId: 1, Text: "t", MediaType: "image", Privacy: "public", MediaName: "m"})
+			return e
+		}},
+		{"CreateReel", func() error {
+			_, e := h.CreateReel(context.Background(), &feedpb.CreateReelRequest{AuthorId: 1, Caption: "c", MediaName: "m", DurationSecs: 5, Privacy: "public"})
+			return e
+		}},
+		{"CreateStory", func() error {
+			_, e := h.CreateStory(context.Background(), &feedpb.CreateStoryRequest{AuthorId: 1, MediaType: "image", MediaName: "m", DurationSecs: 5, Privacy: "public"})
+			return e
+		}},
+		{"ReactToContent", func() error {
+			_, e := h.ReactToContent(context.Background(), &feedpb.ReactionRequest{UserId: 1, ContentId: 2, Type: "like"})
+			return e
+		}},
+		{"GetReactions", func() error { _, e := h.GetReactions(context.Background(), &feedpb.ContentID{ContentId: 2}); return e }},
+		{"DeleteReaction", func() error {
+			_, e := h.DeleteReaction(context.Background(), &feedpb.DeleteReactionRequest{UserId: 1, ContentId: 2})
+			return e
+		}},
+		{"GetMediaRef", func() error { _, e := h.GetMediaRef(context.Background(), &feedpb.ContentID{ContentId: 1}); return e }},
+		{"GetContent", func() error { _, e := h.GetContent(context.Background(), &feedpb.ContentID{ContentId: 5}); return e }},
+		{"DeleteContent", func() error { _, e := h.DeleteContent(context.Background(), &feedpb.ContentID{ContentId: 5}); return e }},
+		{"GetTimeline", func() error { _, e := h.GetTimeline(context.Background(), &feedpb.UserID{UserId: 1}); return e }},
+		{"GetUserContent", func() error {
+			_, e := h.GetUserContent(context.Background(), &feedpb.GetUserContentRequest{RequesterId: 1, TargetUserId: 2})
+			return e
+		}},
+	}
+
+	for _, c := range cases {
+		if err := c.run(); err != nil {
+			t.Errorf("%s failed: %v", c.name, err)
 		}
 	}
 }

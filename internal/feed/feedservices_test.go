@@ -10,6 +10,7 @@ import (
 
 	userpb "GoSocial/api/v1/user"
 	"GoSocial/internal/dbmysql"
+
 	"google.golang.org/grpc"
 )
 
@@ -433,5 +434,188 @@ func TestService_ExpiredStoryCleaner(t *testing.T) {
 	}
 	for _, story := range expired {
 		_ = svc.DeleteContent(context.Background(), story.ContentID)
+	}
+}
+func TestService_GetTimeline_PartialFriendContentError(t *testing.T) {
+	cRepo := newFakeContentRepo()
+	mRepo := newFakeMediaRepo()
+	rRepo := newFakeReactionRepo()
+	// friend(2) with error listing
+	uc := &fakeUserClient{
+		ListFn: func(context.Context, *userpb.UserID, ...grpc.CallOption) (*userpb.FriendList, error) {
+			return &userpb.FriendList{Friends: []*userpb.Friend{{UserId: 2}, {UserId: 3}}}, nil
+		},
+	}
+	// Only userID=2 will fail, userID=3 will succeed
+	goodPost := dbmysql.Content{AuthorID: 3, Type: "POST", Privacy: "public", TextContent: &[]string{"ok"}[0]}
+	_ = cRepo.CreateContent(context.Background(), &goodPost)
+
+	svc := &FeedService{
+		contentRepo:  contentRepoWithError{fakeContentRepo: cRepo, badUser: 2},
+		mediaRepo:    mRepo,
+		reactionRepo: rRepo,
+		UserClient:   uc,
+	}
+	cs, _, err := svc.GetTimeline(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if len(cs) == 0 {
+		t.Fatal("expected some content despite one friend failing")
+	}
+}
+
+type contentRepoWithError struct {
+	*fakeContentRepo
+	badUser int64
+}
+
+func (r contentRepoWithError) ListUserContent(ctx context.Context, userID int64) ([]dbmysql.Content, error) {
+	if userID == r.badUser {
+		return nil, errors.New("boom")
+	}
+	return r.fakeContentRepo.ListUserContent(ctx, userID)
+}
+
+func TestService_StartExpiredStoryCleaner_Tick(t *testing.T) {
+	cRepo := newFakeContentRepo()
+	mRepo := newFakeMediaRepo()
+	rRepo := newFakeReactionRepo()
+	expiration := time.Now().Add(-2 * time.Second)
+	_ = cRepo.CreateContent(context.Background(),
+		&dbmysql.Content{AuthorID: 1, Type: "STORY", Privacy: "public", Expiration: &expiration})
+
+	svc := &FeedService{contentRepo: cRepo, mediaRepo: mRepo, reactionRepo: rRepo}
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		svc.cleanupStarted = false
+		ticker := time.NewTicker(10 * time.Millisecond)
+		for {
+			select {
+			case <-ticker.C:
+				expired, _ := svc.contentRepo.ListExpiredStories(context.Background(), time.Now())
+				for _, st := range expired {
+					_ = svc.DeleteContent(context.Background(), st.ContentID)
+				}
+				return
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	time.Sleep(30 * time.Millisecond)
+	cancel()
+}
+func TestService_CreateReel_And_Story(t *testing.T) {
+	svc := &FeedService{contentRepo: newFakeContentRepo(), mediaRepo: newFakeMediaRepo(), reactionRepo: newFakeReactionRepo()}
+	_, err := svc.CreateReel(context.Background(), 1, "cap", []byte("data"), "mp4", 10, "public")
+	if err != nil {
+		t.Fatalf("CreateReel failed: %v", err)
+	}
+	_, err = svc.CreateStory(context.Background(), 1, []byte("data"), "story", "jpg", 5, "public")
+	if err != nil {
+		t.Fatalf("CreateStory failed: %v", err)
+	}
+}
+
+func TestService_ListUserContent(t *testing.T) {
+	cRepo := newFakeContentRepo()
+	txt := "foo"
+	_ = cRepo.CreateContent(context.Background(), &dbmysql.Content{AuthorID: 2, Type: "POST", TextContent: &txt, Privacy: "public"})
+	svc := &FeedService{contentRepo: cRepo, mediaRepo: newFakeMediaRepo(), reactionRepo: newFakeReactionRepo()}
+	_, err := svc.ListUserContent(context.Background(), 2)
+	if err != nil {
+		t.Fatalf("ListUserContent failed: %v", err)
+	}
+}
+
+func TestService_GetReactions_HappyPath(t *testing.T) {
+	rRepo := newFakeReactionRepo()
+	_ = rRepo.AddReaction(context.Background(), &dbmysql.Reaction{UserID: 1, ContentID: 2, Type: "like"})
+	svc := &FeedService{contentRepo: newFakeContentRepo(), mediaRepo: newFakeMediaRepo(), reactionRepo: rRepo}
+	_, err := svc.GetReactions(context.Background(), 2)
+	if err != nil {
+		t.Fatalf("GetReactions failed: %v", err)
+	}
+}
+
+func TestService_GetUserFriendIDs(t *testing.T) {
+	uc := &fakeUserClient{
+		ListFn: func(context.Context, *userpb.UserID, ...grpc.CallOption) (*userpb.FriendList, error) {
+			return &userpb.FriendList{Friends: []*userpb.Friend{{UserId: 42}}}, nil
+		},
+	}
+	svc := &FeedService{UserClient: uc}
+	ids, err := svc.GetUserFriendIDs(context.Background(), 1)
+	if err != nil || len(ids) != 1 || ids[0] != 42 {
+		t.Fatalf("unexpected result: ids=%v err=%v", ids, err)
+	}
+}
+
+func TestService_GetTimeline_And_UserContent_HappyPath(t *testing.T) {
+	cRepo := newFakeContentRepo()
+	txt := "hi"
+	_ = cRepo.CreateContent(context.Background(), &dbmysql.Content{AuthorID: 2, Type: "POST", Privacy: "public", TextContent: &txt})
+	uc := &fakeUserClient{
+		ListFn: func(context.Context, *userpb.UserID, ...grpc.CallOption) (*userpb.FriendList, error) {
+			return &userpb.FriendList{Friends: []*userpb.Friend{{UserId: 2}}}, nil
+		},
+	}
+	svc := &FeedService{contentRepo: cRepo, mediaRepo: newFakeMediaRepo(), reactionRepo: newFakeReactionRepo(), UserClient: uc}
+	_, _, err := svc.GetTimeline(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("GetTimeline failed: %v", err)
+	}
+	_, _, err = svc.GetUserContent(context.Background(), 1, 2)
+	if err != nil {
+		t.Fatalf("GetUserContent failed: %v", err)
+	}
+}
+
+// --- Covers all service happy paths that were previously 0.0% ---
+
+func TestService_AllMissingHappyPaths(t *testing.T) {
+	cRepo := newFakeContentRepo()
+	mRepo := newFakeMediaRepo()
+	rRepo := newFakeReactionRepo()
+
+	txt := "hello"
+	_ = cRepo.CreateContent(context.Background(), &dbmysql.Content{AuthorID: 1, Type: "POST", TextContent: &txt, Privacy: "public"})
+
+	uc := &fakeUserClient{
+		ListFn: func(context.Context, *userpb.UserID, ...grpc.CallOption) (*userpb.FriendList, error) {
+			return &userpb.FriendList{Friends: []*userpb.Friend{{UserId: 1}}}, nil
+		},
+	}
+
+	svc := &FeedService{contentRepo: cRepo, mediaRepo: mRepo, reactionRepo: rRepo, UserClient: uc}
+
+	if _, err := svc.ListUserContent(context.Background(), 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.CreateMediaRef(context.Background(), &dbmysql.MediaRef{FileName: "n", Type: "image"}, []byte("d")); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.GetMediaRef(context.Background(), 1); err != nil {
+		t.Fatal(err)
+	}
+	_ = rRepo.AddReaction(context.Background(), &dbmysql.Reaction{UserID: 1, ContentID: 1, Type: "like"})
+	if _, err := svc.GetReactions(context.Background(), 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.GetUserFriendIDs(context.Background(), 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.GetTimeline(context.Background(), 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.GetUserContent(context.Background(), 1, 1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.CreateReel(context.Background(), 1, "cap", []byte("d"), "f", 5, "public"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.CreateStory(context.Background(), 1, []byte("d"), "image", "name", 5, "public"); err != nil {
+		t.Fatal(err)
 	}
 }
