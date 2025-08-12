@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  test-mongodb:
+    image: mongo:5.0
+    ports:
+      - "27018:27017"  # Different port to avoid conflicts
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: testuser
+      MONGO_INITDB_ROOT_PASSWORD: testpass
+      MONGO_INITDB_DATABASE: test_gosocial
+    tmpfs:
+      - /data/db  # Use tmpfs for faster test execution
+

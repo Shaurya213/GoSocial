@@ -20,13 +20,14 @@ func (mft MediaFileType) IsValid() bool {
 	return mft == MediaFileTypeImage || mft == MediaFileTypeVideo
 }
 
-// DetectFileType determines file type from MIME type
 func DetectFileType(mimeType string) MediaFileType {
-	if strings.HasPrefix(mimeType, "image/") {
+	lowerMimeType := strings.ToLower(mimeType)
+	if strings.HasPrefix(lowerMimeType, "image/") {
 		return MediaFileTypeImage
 	}
-	if strings.HasPrefix(mimeType, "video/") {
+	if strings.HasPrefix(lowerMimeType, "video/") {
 		return MediaFileTypeVideo
 	}
 	return MediaFileTypeImage // Default fallback
 }
+
