@@ -215,7 +215,7 @@ func( s *userService) RegisterDevice(ctx context.Context, userID uint64, token, 
 	
 	device := &dbmysql.Device{
         DeviceToken:  token,
-        UserID:       userID,
+        UserID:       string(userID),
         Platform:     platform,
         RegisteredAt: time.Now(),
         LastActive:   time.Now(),
