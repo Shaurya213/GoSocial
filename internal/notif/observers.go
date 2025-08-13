@@ -8,6 +8,7 @@ import (
 
 	"gosocial/internal/common"
 	"gosocial/internal/dbmysql"
+	"gosocial/internal/user"
 
 	"firebase.google.com/go/v4/messaging"
 	"github.com/google/uuid"
@@ -16,12 +17,12 @@ import (
 // FCMObserver handles Firebase Cloud Messaging notifications
 type FCMObserver struct {
 	fcmClient  *messaging.Client
-	deviceRepo common.DeviceRepository
+	deviceRepo user.DeviceRepository
 }
 
 func NewFCMObserver(
 	fcmClient *messaging.Client,
-	deviceRepo common.DeviceRepository,
+	deviceRepo user.DeviceRepository,
 ) *FCMObserver {
 	return &FCMObserver{
 		fcmClient:  fcmClient,

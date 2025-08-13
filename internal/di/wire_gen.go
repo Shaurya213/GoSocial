@@ -26,16 +26,23 @@ import (
 
 // Injectors from wire.go:
 
-// wire entry point
-// it needs *user.Handler, so we are returning it with along all the helper or provider set
-// giving or passing *gorm.DB do wire won't generate it
-func InitializeUserHandler(db *gorm.DB) *user.Handler {
-	userRepository := NewUserRepo(db)
-	friendRepository := NewFriendRepo(db)
-	deviceRepository := NewDeviceRepo(db)
-	userService := NewUserService(userRepository, friendRepository, deviceRepository)
-	handler := NewHandler(userService)
-	return handler
+func InitializeUserHandler() (*UserApp, error) {
+	configConfig := config.LoadConfig()
+	db, err := dbmysql.NewMySQL(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	userRepository := user.NewUserRepository(db)
+	friendRepository := user.NewFriendRepository(db)
+	deviceRepository := user.NewDeviceRepository(db)
+	userService := user.NewUserService(userRepository, friendRepository, deviceRepository)
+	handler := user.NewHandler(userService)
+	userApp := &UserApp{
+		Handler: handler,
+		DB:      db,
+		Config:  configConfig,
+	}
+	return userApp, nil
 }
 
 // InitializeChatService now returns ChatApp with both handler and DB
@@ -64,7 +71,7 @@ func InitializeApplication() (*Application, error) {
 		return nil, err
 	}
 	notificationRepository := dbmysql.NewNotificationRepository(db)
-	deviceRepository := dbmysql.NewDeviceRepository(db)
+	deviceRepository := user.NewDeviceRepository(db)
 	app, err := ProvideFirebaseApp(configConfig)
 	if err != nil {
 		return nil, err
@@ -89,38 +96,13 @@ func InitializeApplication() (*Application, error) {
 // wire.go:
 
 // USER
-// Provider Functions from Repository layer
-func NewUserRepo(db *gorm.DB) user.UserRepository {
-	return user.NewUserRepository(db)
+type UserApp struct {
+	Handler *user.Handler
+	DB      *gorm.DB
+	Config  *config.Config
 }
 
-func NewFriendRepo(db *gorm.DB) user.FriendRepository {
-	return user.NewFriendRepository(db)
-}
-
-func NewDeviceRepo(db *gorm.DB) user.DeviceRepository {
-	return user.NewDeviceRepository(db)
-}
-
-// Provider function from service layer
-func NewUserService(userRepo user.UserRepository, friendRepo user.FriendRepository, deviceRepo user.DeviceRepository) user.UserService {
-	return user.NewUserService(userRepo, friendRepo, deviceRepo)
-}
-
-// provider function from Handler
-func NewHandler(userService user.UserService) *user.Handler {
-	return user.NewHandler(userService)
-}
-
-// provider set- put all the provider functions from all the layer,
-// wire automatically sets all the wiring between provider functions
-var UserSet = wire.NewSet(
-	NewUserRepo,
-	NewFriendRepo,
-	NewDeviceRepo,
-	NewUserService,
-	NewHandler,
-)
+var UserSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, user.NewDeviceRepository, user.NewUserRepository, user.NewFriendRepository, user.NewUserService, user.NewHandler, wire.Struct(new(UserApp), "*"))
 
 // CHATS
 type ChatApp struct {

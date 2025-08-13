@@ -1,58 +1,63 @@
 package user
 
 import (
+	"context"
 	"fmt"
-    "context"
-    "gosocial/internal/dbmysql"
-    "gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
+	"gosocial/internal/dbmysql"
 )
 
-
 type DeviceRepository interface {
-    RegisterDevice(ctx context.Context, device *dbmysql.Device) error
-    GetUserdDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error)
-    UpdateDeviceActivity(ctx context.Context, deviceToken string) error
-    RemoveDevice(ctx context.Context, deviceToken string) error
+	RegisterDevice(ctx context.Context, device *dbmysql.Device) error
+	GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error)
+	UpdatedDeviceActivity(ctx context.Context, deviceToken string) error
+	RemovedDevice(ctx context.Context, deviceToken string) error
+	ActiveByUserID(ctx context.Context, userID string) ([]interface{}, error)
+	CreateOrUpdate(ctx context.Context, userID, deviceToken, platform string) error
+	UpdateTokenStatus(ctx context.Context, token string, isActive bool) error
+	DeleteToken(ctx context.Context, token string) error
 }
 
-
-func (r *deviceRepository) RegisterDevice(ctx context.Context, device *dbmysql.Device) error {    
-    return r.db.WithContext(ctx).Save(device).Error
-}
-
-func (r *deviceRepository) GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error) {
-    var devices []*dbmysql.Device
-    err := r.db.WithContext(ctx).
-        Where("user_id = ?", userID).
-        Order("last_active DESC").
-        Find(&devices).Error
-    
-    return devices, err
-}
-
-func (r *deviceRepository) UpdatedDeviceActivity(ctx context.Context, deviceToken string) error {
-    return r.db.WithContext(ctx).
-        Model(&dbmysql.Device{}).
-        Where("device_token = ?", deviceToken).
-        Update("last_active", time.Now()).Error
-}
-
-func (r *deviceRepository) RemovedDevice(ctx context.Context, deviceToken string) error {
-    return r.db.WithContext(ctx).Delete(&dbmysql.Device{}, "device_token = ?", deviceToken).Error
-}
-
-type deviceRepository struct {
+type DeviceRepo struct {
 	db *gorm.DB
 }
+/*
+func NewDeviceRepository(db *gorm.DB) *DeviceRepo {
+	return &DeviceRepo{db: db}
+}*/
 
-func NewDeviceRepository(db *gorm.DB) *deviceRepository {
-	return &deviceRepository{
-		db: db,
-	}
+func NewDeviceRepository(db *gorm.DB) DeviceRepository {
+	return &DeviceRepo{db: db}
 }
 
-func (r *deviceRepository) CreateOrUpdate(
+func (r *DeviceRepo) RegisterDevice(ctx context.Context, device *dbmysql.Device) error {
+	return r.db.WithContext(ctx).Save(device).Error
+}
+
+func (r *DeviceRepo) GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error) {
+	var devices []*dbmysql.Device
+	err := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("last_active DESC").
+		Find(&devices).Error
+
+	return devices, err
+}
+
+func (r *DeviceRepo) UpdatedDeviceActivity(ctx context.Context, deviceToken string) error {
+	return r.db.WithContext(ctx).
+		Model(&dbmysql.Device{}).
+		Where("device_token = ?", deviceToken).
+		Update("last_active", time.Now()).Error
+}
+
+func (r *DeviceRepo) RemovedDevice(ctx context.Context, deviceToken string) error {
+	return r.db.WithContext(ctx).Delete(&dbmysql.Device{}, "device_token = ?", deviceToken).Error
+}
+
+func (r *DeviceRepo) CreateOrUpdate(
 	ctx context.Context,
 	userID, deviceToken, platform string,
 ) error {
@@ -71,7 +76,7 @@ func (r *deviceRepository) CreateOrUpdate(
 	return nil
 }
 
-func (r *deviceRepository) ActiveByUserID(
+func (r *DeviceRepo) ActiveByUserID(
 	ctx context.Context,
 	userID string,
 ) ([]interface{}, error) {
@@ -83,7 +88,6 @@ func (r *deviceRepository) ActiveByUserID(
 		Where("user_id = ? AND last_active > ?", userID, cutoffTime).
 		Order("last_active DESC").
 		Find(&devices).Error
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active devices: %w", err)
 	}
@@ -96,7 +100,7 @@ func (r *deviceRepository) ActiveByUserID(
 	return result, nil
 }
 
-func (r *deviceRepository) UpdateTokenStatus(
+func (r *DeviceRepo) UpdateTokenStatus(
 	ctx context.Context,
 	token string,
 	isActive bool,
@@ -104,7 +108,6 @@ func (r *deviceRepository) UpdateTokenStatus(
 	updates := map[string]interface{}{}
 
 	if !isActive {
-
 		updates["last_active"] = time.Now().AddDate(-1, 0, 0)
 	} else {
 		updates["last_active"] = time.Now()
@@ -122,7 +125,7 @@ func (r *deviceRepository) UpdateTokenStatus(
 	return nil
 }
 
-func (r *deviceRepository) DeleteToken(ctx context.Context, token string) error {
+func (r *DeviceRepo) DeleteToken(ctx context.Context, token string) error {
 	result := r.db.WithContext(ctx).Delete(&dbmysql.Device{}, "device_token = ?", token)
 
 	if result.Error != nil {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gosocial/internal/common"
+	"gosocial/internal/user"
 	"gosocial/internal/config"
 	"gosocial/internal/dbmysql"
 
@@ -104,13 +105,13 @@ func (ns *NotificationSubject) Shutdown() {
 type NotificationService struct {
 	config       *config.Config
 	repo         common.NotificationRepository
-	deviceRepo   common.DeviceRepository
+	deviceRepo   user.DeviceRepository
 	fcmClient    *messaging.Client
 	emailService common.EmailService
 	subject      *NotificationSubject
 }
 
-func NewNotificationService(config *config.Config, repo common.NotificationRepository, deviceRepo common.DeviceRepository, fcmClient *messaging.Client, emailService common.EmailService) *NotificationService {
+func NewNotificationService(config *config.Config, repo common.NotificationRepository, deviceRepo user.DeviceRepository, fcmClient *messaging.Client, emailService common.EmailService) *NotificationService {
 	service := &NotificationService{
 		config:       config,
 		repo:         repo,

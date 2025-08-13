@@ -3,56 +3,30 @@ package main
 import (
 	"fmt"
 	"gosocial/internal/common"
+	"gosocial/internal/dbmysql"
 	"gosocial/internal/di"
 	"log"
 	"net"
-	"os"
 
 	pb "gosocial/api/v1/user"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	fmt.Println("gosocial user main")
-	
-	err := godotenv.Load()
+	fmt.Println("Initialiszing user service...")
+	app, err := di.InitializeUserHandler()
 	if err != nil {
-		log.Println(".env file not found, using system env variables")
-	}
-	
-	//step-1
-	//Load Configurations for database
-	dbconfig := common.GetDatabaseConfig()
-
-	//load configuration for server
-	serverport := os.Getenv("SERVER_PORT")
-	if serverport == "" {
-		serverport = "8080"
+		log.Fatalf("Failed to initialize chat service: %v", err)
 	}
 
-	log.Println("Configuration Loaded")
-
-	//step-2
-	//initializing database
-	db, err := common.InitDatabase(dbconfig)
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+	if err := app.DB.AutoMigrate(&dbmysql.Device{},
+	&dbmysql.User{}, &dbmysql.Friend{}); err != nil {
+		log.Fatalf("Nahi chal raha AutoMigrate: %v", err)
 	}
+	log.Println("✅ Database migration completed")
 
-	log.Println("Database Initialized successfully")
-
-	// step-3
-	//initializing all the dependencies using wire, we are
-	// using woire bcz wire figure out all the dependencies by itself
-	handler := di.InitializeUserHandler(db)
-	log.Println("Dependencies wired Successfully")
-
-	//step-4
-	//creating gRPC server with middleware
-	// server ko middleware ke sath creating, bcz midlleware token parsing aur only alloowed servies ko bhi pass hone dega
 	server := grpc.NewServer(
 		//jwt authentcation middleware
 		// it protects all the endpoints , except register/login
@@ -60,9 +34,17 @@ func main() {
 		grpc.UnaryInterceptor(common.AuthInterceptor()),
 	)
 
+	// step-3
+	//initializing all the dependencies using wire, we are
+	// using woire bcz wire figure out all the dependencies by itself
+
+	//step-4
+	//creating gRPC server with middleware
+	// server ko middleware ke sath creating, bcz midlleware token parsing aur only alloowed servies ko bhi pass hone dega
+
 	//step-5
 	//regiser UserService with grpc Server, this makes handlers method available to gRPC requests
-	pb.RegisterUserServiceServer(server, handler)
+	pb.RegisterUserServiceServer(server, app.Handler)
 	log.Println("UserService Registered with gPRC server")
 
 	//step - 6
@@ -79,13 +61,13 @@ func main() {
 	// reflection saari input output of services ka format bta dega
 	// server ke sath middleware hai- jo protected routes pr authentication ke baad corresponding handler
 	// function of request pass krega
-	listener, err := net.Listen("tcp", ":"+serverport)
-	log.Println("server bhai listening")
-	if err != nil {
-		log.Fatalf("Failegd to listen on port %s: %v", serverport, err)
-	}
 
 	//step - 8
+	listener, err := net.Listen("tcp", ":"+app.Config.Server.UserServicePort)
+	log.Println("server bhai listening")
+	if err != nil {
+		log.Fatalf("Failegd to listen on port %s: %v", app.Config.Server.UserServicePort, err)
+	}
 	//allow server to run
 	log.Println("User Service is Running bhai")
 	if err := server.Serve(listener); err != nil {

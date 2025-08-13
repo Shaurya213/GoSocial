@@ -28,12 +28,6 @@ type NotificationRepository interface {
 	UnreadCount(ctx context.Context, userID string) (int64, error)
 }
 
-type DeviceRepository interface {
-	CreateOrUpdate(ctx context.Context, userID, deviceToken, platform string) error
-	ActiveByUserID(ctx context.Context, userID string) ([]interface{}, error)
-	UpdateTokenStatus(ctx context.Context, token string, isActive bool) error
-	DeleteToken(ctx context.Context, token string) error
-}
 
 type EmailService interface {
 	SendEmail(to, subject, body string) error

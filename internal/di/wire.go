@@ -33,17 +33,18 @@ type UserApp struct {
 var UserSet = wire.NewSet(
 	config.LoadConfig,
 	dbmysql.NewMySQL,
+	user.NewDeviceRepository,
+	//wire.Bind(new(user.DeviceRepository), new(*user.DeviceRepo)),
 	user.NewUserRepository,
 	user.NewFriendRepository,
-	user.NewDeviceRepository,
 	user.NewUserService,
 	user.NewHandler,
 	wire.Struct(new(UserApp), "*"), // Wire creates ChatApp with all fields
 )
 
-func InitializeUserHandler() *UserApp {
+func InitializeUserHandler() (*UserApp, error) {
 	wire.Build(UserSet)
-	return nil
+	return nil, nil
 }
 // wire entry point
 // it needs *user.Handler, so we are returning it with along all the helper or provider set
@@ -82,10 +83,10 @@ type Application struct {
 func InitializeApplication() (*Application, error) {
 	wire.Build(
 		config.LoadConfig,
-		//ProvideDatabaseConnection,
 		dbmysql.NewMySQL,
-		dbmysql.NewNotificationRepository,
 		user.NewDeviceRepository,
+		dbmysql.NewNotificationRepository,
+		//wire.Bind(new(user.DeviceRepository), new(*user.DeviceRepo)),
 		ProvideFirebaseApp,
 		ProvideFirebaseMessaging,
 		ProvideEmailService,

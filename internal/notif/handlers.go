@@ -11,6 +11,7 @@ import (
 	pb "gosocial/api/v1"
 	"gosocial/internal/common"
 	"gosocial/internal/config"
+	"gosocial/internal/user"
 	"gosocial/internal/dbmysql"
 
 	"firebase.google.com/go/v4/messaging"
@@ -38,14 +39,14 @@ type GRPCHandler struct {
 	service    NotificationServiceInterface // interface instead of concrete type
 	config     *config.Config
 	fcmClient  *messaging.Client
-	deviceRepo common.DeviceRepository
+	deviceRepo user.DeviceRepository
 }
 
 func NewNotificationHandler(
 	service NotificationServiceInterface, // Changed to interface
 	config *config.Config,
 	fcmClient *messaging.Client,
-	deviceRepo common.DeviceRepository,
+	deviceRepo user.DeviceRepository,
 ) *NotificationHandler {
 	grpcHandler := NewGRPCHandler(service, config, fcmClient, deviceRepo)
 	return &NotificationHandler{
@@ -57,7 +58,7 @@ func NewGRPCHandler(
 	service NotificationServiceInterface, // Changed to interface
 	config *config.Config,
 	fcmClient *messaging.Client,
-	deviceRepo common.DeviceRepository,
+	deviceRepo user.DeviceRepository,
 ) *GRPCHandler {
 	return &GRPCHandler{
 		service:    service,
