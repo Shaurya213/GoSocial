@@ -6,3 +6,7 @@ Setup SQL and mongoDB
 
 Check if containers are running
 `docker ps`
+
+# Chats
+## Working Chat streaming
+

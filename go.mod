@@ -1,6 +1,6 @@
 module gosocial
 
-go 1.24.4
+go 1.24
 
 require (
 	firebase.google.com/go/v4 v4.18.0
