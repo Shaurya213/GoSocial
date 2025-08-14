@@ -11,7 +11,7 @@ import (
 	"gosocial/internal/user"
 
 	"firebase.google.com/go/v4/messaging"
-	"github.com/google/uuid"
+	// "github.com/google/uuid"
 )
 
 // FCMObserver handles Firebase Cloud Messaging notifications
@@ -45,7 +45,7 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 		return nil
 	}
 
-	devicesInterface, err := f.deviceRepo.ActiveByUserID(context.Background(), event.UserID)
+	devicesInterface, err := f.deviceRepo.ActiveByUserID(context.Background(), uint64(event.UserID))
 	if err != nil {
 		return fmt.Errorf("failed to get devices: %w", err)
 	}
@@ -76,7 +76,7 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 		},
 		Data: map[string]string{
 			"type":    string(event.Type),
-			"user_id": event.UserID,
+			"user_id": fmt.Sprintf("%d", event.UserID),
 		},
 		Tokens: tokens,
 	}
@@ -178,7 +178,7 @@ func (d *DatabaseObserver) Name() string {
 
 func (d *DatabaseObserver) Update(event common.NotificationEvent) error {
 	notification := &dbmysql.Notification{
-		ID:            uuid.New().String(),
+		// ID:            uuid.New().String(),
 		UserID:        event.UserID,
 		Type:          event.Type,
 		Header:        event.Header,

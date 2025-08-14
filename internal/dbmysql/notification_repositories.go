@@ -31,12 +31,12 @@ func (r *notificationRepository) Create(ctx context.Context, notification interf
 	return nil
 }
 
-func (r *notificationRepository) ByID(ctx context.Context, id string) (interface{}, error) {
+func (r *notificationRepository) ByID(ctx context.Context, id uint) (interface{}, error) {
 	var notification Notification
 
 	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&notification).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("notification not found: %s", id)
+			return nil, fmt.Errorf("notification not found: %v", id)
 		}
 		return nil, fmt.Errorf("failed to get notification: %w", err)
 	}
@@ -46,7 +46,7 @@ func (r *notificationRepository) ByID(ctx context.Context, id string) (interface
 
 func (r *notificationRepository) ByUserID(
 	ctx context.Context,
-	userID string,
+	userID uint,
 	limit, offset int,
 ) ([]interface{}, error) {
 	var notifications []*Notification
@@ -99,7 +99,7 @@ func (r *notificationRepository) ScheduledNotifications(
 	return result, nil
 }
 
-func (r *notificationRepository) UpdateStatus(ctx context.Context, id, status string) error {
+func (r *notificationRepository) UpdateStatus(ctx context.Context, id uint, status string) error {
 	result := r.db.WithContext(ctx).
 		Model(&Notification{}).
 		Where("id = ?", id).
@@ -113,13 +113,13 @@ func (r *notificationRepository) UpdateStatus(ctx context.Context, id, status st
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("notification not found: %s", id)
+		return fmt.Errorf("notification not found: %v", id)
 	}
 
 	return nil
 }
 
-func (r *notificationRepository) MarkAsRead(ctx context.Context, id, userID string) error {
+func (r *notificationRepository) MarkAsRead(ctx context.Context, id uint, userID uint) error {
 	now := time.Now()
 
 	result := r.db.WithContext(ctx).
@@ -136,13 +136,13 @@ func (r *notificationRepository) MarkAsRead(ctx context.Context, id, userID stri
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("notification not found or access denied: %s", id)
+		return fmt.Errorf("notification not found or access denied: %v", id)
 	}
 
 	return nil
 }
 
-func (r *notificationRepository) Delete(ctx context.Context, id string) error {
+func (r *notificationRepository) Delete(ctx context.Context, id uint) error {
 	result := r.db.WithContext(ctx).Delete(&Notification{}, "id = ?", id)
 
 	if result.Error != nil {
@@ -150,13 +150,13 @@ func (r *notificationRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("notification not found: %s", id)
+		return fmt.Errorf("notification not found: %v", id)
 	}
 
 	return nil
 }
 
-func (r *notificationRepository) UnreadCount(ctx context.Context, userID string) (int64, error) {
+func (r *notificationRepository) UnreadCount(ctx context.Context, userID uint) (int64, error) {
 	var count int64
 
 	err := r.db.WithContext(ctx).
@@ -170,4 +170,3 @@ func (r *notificationRepository) UnreadCount(ctx context.Context, userID string)
 
 	return count, nil
 }
-

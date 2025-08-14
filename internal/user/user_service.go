@@ -6,6 +6,7 @@ import (
 	"gosocial/internal/common"
 	"gosocial/internal/dbmysql"
 	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -24,24 +25,22 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo 	UserRepository
-	friendRepo 	FriendRepository
-	deviceRepo 	DeviceRepository
+	userRepo   UserRepository
+	friendRepo FriendRepository
+	deviceRepo DeviceRepository
 }
 
 func NewUserService(userRepo UserRepository, friendRepo FriendRepository, deviceRepo DeviceRepository) UserService {
-    return &userService{userRepo: userRepo, friendRepo: friendRepo, deviceRepo: deviceRepo}
+	return &userService{userRepo: userRepo, friendRepo: friendRepo, deviceRepo: deviceRepo}
 }
 
-
-
-func(s *userService) RegisterUser(ctx context.Context, handle, email, password string) (*dbmysql.User, string, error) {
+func (s *userService) RegisterUser(ctx context.Context, handle, email, password string) (*dbmysql.User, string, error) {
 	//validating handle
-	if err := common.ValidateHandle(handle); err!= nil {
+	if err := common.ValidateHandle(handle); err != nil {
 		return nil, "", err
 	}
 
-	if err := common.ValidateEmail(email); err!= nil {
+	if err := common.ValidateEmail(email); err != nil {
 		return nil, "", err
 	}
 
@@ -66,10 +65,10 @@ func(s *userService) RegisterUser(ctx context.Context, handle, email, password s
 
 	//create user
 	user := &dbmysql.User{
-		Handle: handle,
-		Email: email,
+		Handle:       handle,
+		Email:        email,
 		PasswordHash: hashed,
-		Status: "active",
+		Status:       "active",
 	}
 
 	err = s.userRepo.CreateUser(ctx, user)
@@ -88,8 +87,7 @@ func(s *userService) RegisterUser(ctx context.Context, handle, email, password s
 
 }
 
-
-func (s *userService) LoginUser(ctx context.Context, handle, password string)(*dbmysql.User, string, error) {
+func (s *userService) LoginUser(ctx context.Context, handle, password string) (*dbmysql.User, string, error) {
 	if handle == "" || password == "" {
 		return nil, "", errors.New("handle and password required")
 	}
@@ -103,35 +101,34 @@ func (s *userService) LoginUser(ctx context.Context, handle, password string)(*d
 		return nil, "", errors.New("user is not active")
 	}
 
-	if err:= common.CheckPassword(password, user.PasswordHash); err != nil {
+	if err := common.CheckPassword(password, user.PasswordHash); err != nil {
 		return nil, "", errors.New("invalid password")
 	}
 
 	token, err := common.GenerateToken(user.UserID, user.Handle)
-	if err != nil{
+	if err != nil {
 		return nil, "", err
 	}
 	return user, token, nil
 }
 
-
-func (s *userService) GetProfile(ctx context.Context, userID uint64)(*dbmysql.User, error) {
+func (s *userService) GetProfile(ctx context.Context, userID uint64) (*dbmysql.User, error) {
 	return s.userRepo.GetUserByID(ctx, userID)
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, userID uint64, email, phone, profileDetails string) error {
 	user, err := s.userRepo.GetUserByID(ctx, userID)
-	if err != nil{
+	if err != nil {
 		return err
 	}
-	if email != ""{
+	if email != "" {
 		if err := common.ValidateEmail(email); err != nil {
 			return err
 		}
 		user.Email = email
 	}
 
-	if phone != ""{
+	if phone != "" {
 		user.Phone = phone
 	}
 
@@ -141,7 +138,6 @@ func (s *userService) UpdateProfile(ctx context.Context, userID uint64, email, p
 
 	return s.userRepo.UpdateUser(ctx, user)
 }
-
 
 func (s *userService) SendFriendRequest(ctx context.Context, userID, targetUserID uint64) error {
 	if userID == targetUserID {
@@ -158,80 +154,78 @@ func (s *userService) SendFriendRequest(ctx context.Context, userID, targetUserI
 	}
 
 	friend := &dbmysql.Friend{
-		UserID: userID,
+		UserID:       userID,
 		FriendUserID: targetUserID,
-		Status: "pending",
+		Status:       "pending",
 	}
 
 	return s.friendRepo.CreateFriendRequest(ctx, friend)
 }
 
 func (s *userService) AcceptFriendRequest(ctx context.Context, userID, requesterID uint64) error {
-    friendReq, err := s.friendRepo.GetFriendRequest(ctx, requesterID, userID)
-    if err != nil {
-        return err
-    }
-    if friendReq.Status != "pending" {
-        return errors.New("friend request is not pending")
-    }
-    now := time.Now()
-    friendReq.Status = "accepted"
-    friendReq.AcceptedAt = &now
-    if err := s.friendRepo.UpdateFriendRequest(ctx, friendReq); err!= nil{
-        return err
-    }
-    
-    already, err := s.friendRepo.GetFriendRequest(ctx, userID, requesterID)
-    if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-        return err
-    }
-    if already == nil {
-        reverse := &dbmysql.Friend{
-            UserID: userID,
-            FriendUserID: requesterID,
-            Status: "accepted",
-            AcceptedAt: &now,
-        }
-        if err := s.friendRepo.CreateFriendRequest(ctx, reverse); err != nil {
-            return err
-        }
-    }
-    return nil
+	friendReq, err := s.friendRepo.GetFriendRequest(ctx, requesterID, userID)
+	if err != nil {
+		return err
+	}
+	if friendReq.Status != "pending" {
+		return errors.New("friend request is not pending")
+	}
+	now := time.Now()
+	friendReq.Status = "accepted"
+	friendReq.AcceptedAt = &now
+	if err := s.friendRepo.UpdateFriendRequest(ctx, friendReq); err != nil {
+		return err
+	}
+
+	already, err := s.friendRepo.GetFriendRequest(ctx, userID, requesterID)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	if already == nil {
+		reverse := &dbmysql.Friend{
+			UserID:       userID,
+			FriendUserID: requesterID,
+			Status:       "accepted",
+			AcceptedAt:   &now,
+		}
+		if err := s.friendRepo.CreateFriendRequest(ctx, reverse); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-
-func (s *userService) ListFriends(ctx context.Context, userID uint64)([]*dbmysql.User, error) {
+func (s *userService) ListFriends(ctx context.Context, userID uint64) ([]*dbmysql.User, error) {
 	return s.friendRepo.ListFriends(ctx, userID)
 }
 
-
-func( s *userService) RegisterDevice(ctx context.Context, userID uint64, token, platform string) error {
+func (s *userService) RegisterDevice(ctx context.Context, userID uint64, token, platform string) error {
 	if token == "" {
 		return errors.New("device token required")
 	}
 	if platform != "android" && platform != "ios" && platform != "web" {
-        return errors.New("invalid platform")
-    }
-	
+		return errors.New("invalid platform")
+	}
+
 	device := &dbmysql.Device{
-        DeviceToken:  token,
-        UserID:       string(userID),
-        Platform:     platform,
-        RegisteredAt: time.Now(),
-        LastActive:   time.Now(),
-    }
+		DeviceToken:  token,
+		UserID:       userID,
+		Platform:     platform,
+		RegisteredAt: time.Now(),
+		LastActive:   time.Now(),
+	}
 
 	return s.deviceRepo.RegisterDevice(ctx, device)
 }
 
-func(s *userService) RemoveDevice(ctx context.Context, token string) error {
+func (s *userService) RemoveDevice(ctx context.Context, token string) error {
 	return s.deviceRepo.RemovedDevice(ctx, token)
 }
 
-func(s *userService) GetUserDevices(ctx context.Context, userID uint64)([]*dbmysql.Device, error) {
+func (s *userService) GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error) {
 	return s.deviceRepo.GetUserDevices(ctx, userID)
 }
 
-func(s *userService) TouchDevice(ctx context.Context, token string) error {
+func (s *userService) TouchDevice(ctx context.Context, token string) error {
 	return s.deviceRepo.UpdatedDeviceActivity(ctx, token)
 }

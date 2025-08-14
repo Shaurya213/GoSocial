@@ -11,8 +11,8 @@ import (
 	pb "gosocial/api/v1"
 	"gosocial/internal/common"
 	"gosocial/internal/config"
-	"gosocial/internal/user"
 	"gosocial/internal/dbmysql"
+	"gosocial/internal/user"
 
 	"firebase.google.com/go/v4/messaging"
 	"google.golang.org/grpc/codes"
@@ -23,10 +23,10 @@ import (
 type NotificationServiceInterface interface {
 	SendNotification(ctx context.Context, event common.NotificationEvent) error
 	ScheduleNotification(ctx context.Context, event common.NotificationEvent) error
-	GetUserNotifications(ctx context.Context, userID string, limit, offset int) ([]*dbmysql.Notification, error)
-	MarkAsRead(ctx context.Context, notificationID, userID string) error
-	RegisterDeviceToken(ctx context.Context, userID, deviceToken, platform string) error
-	SendFriendRequestNotification(ctx context.Context, fromUserID, toUserID, fromUsername string) error
+	GetUserNotifications(ctx context.Context, userID uint64, limit, offset int) ([]*dbmysql.Notification, error)
+	MarkAsRead(ctx context.Context, notificationID, userID uint) error
+	RegisterDeviceToken(ctx context.Context, userID uint, deviceToken, platform string) error
+	SendFriendRequestNotification(ctx context.Context, fromUserID uint, toUserID uint, fromUsername string) error
 	Shutdown()
 }
 
@@ -76,16 +76,21 @@ func (h *GRPCHandler) SendNotification(ctx context.Context, req *pb.SendNotifica
 	}
 
 	// Convert proto request to internal domain model
+	var userIDUint uint
+	_, err := fmt.Sscanf(req.UserId, "%d", &userIDUint)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user_id must be a valid unsigned integer")
+	}
 	event := common.NotificationEvent{
 		Type:     common.NotificationType(req.Type),
-		UserID:   req.UserId,
+		UserID:   userIDUint,
 		Header:   req.Title,
 		Content:  req.Message,
 		Priority: 3, // Default priority
 		Metadata: convertMapToMetadata(req.Data),
 	}
 
-	err := h.service.SendNotification(ctx, event)
+	err = h.service.SendNotification(ctx, event)
 	if err != nil {
 		log.Printf("Failed to send notification: %v", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to send notification: %v", err))
@@ -110,9 +115,14 @@ func (h *GRPCHandler) ScheduleNotification(ctx context.Context, req *pb.Schedule
 		return nil, status.Error(codes.InvalidArgument, "scheduled_at must be in the future")
 	}
 
+	var userIDUint uint
+	_, err := fmt.Sscanf(req.UserId, "%d", &userIDUint)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user_id must be a valid unsigned integer")
+	}
 	event := common.NotificationEvent{
 		Type:        common.NotificationType(req.Type),
-		UserID:      req.UserId,
+		UserID:      userIDUint,
 		Header:      req.Title,
 		Content:     req.Message,
 		Priority:    2,
@@ -120,7 +130,7 @@ func (h *GRPCHandler) ScheduleNotification(ctx context.Context, req *pb.Schedule
 		Metadata:    convertMapToMetadata(req.Data),
 	}
 
-	err := h.service.ScheduleNotification(ctx, event)
+	err = h.service.ScheduleNotification(ctx, event)
 	if err != nil {
 		log.Printf("Failed to schedule notification: %v", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to schedule notification: %v", err))
@@ -153,7 +163,13 @@ func (h *GRPCHandler) GetUserNotifications(ctx context.Context, req *pb.GetUserN
 	// Calculate offset
 	offset := int((page - 1) * limit)
 
-	notifications, err := h.service.GetUserNotifications(ctx, req.UserId, int(limit), offset)
+	var userIDUint64 uint64
+	_, err := fmt.Sscanf(req.UserId, "%d", &userIDUint64)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user_id must be a valid unsigned integer")
+	}
+
+	notifications, err := h.service.GetUserNotifications(ctx, userIDUint64, int(limit), offset)
 	if err != nil {
 		log.Printf("Failed to get user notifications: %v", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get notifications: %v", err))
@@ -163,8 +179,8 @@ func (h *GRPCHandler) GetUserNotifications(ctx context.Context, req *pb.GetUserN
 	pbNotifications := make([]*pb.NotificationData, len(notifications))
 	for i, notif := range notifications {
 		pbNotifications[i] = &pb.NotificationData{
-			Id:        notif.ID,
-			UserId:    req.UserId,
+			Id:        fmt.Sprintf("%d", notif.ID),
+			UserId:    fmt.Sprintf("%d", req.UserId),
 			Title:     notif.Header,
 			Message:   notif.Content,
 			Type:      string(notif.Type),
@@ -192,7 +208,19 @@ func (h *GRPCHandler) MarkAsRead(ctx context.Context, req *pb.MarkAsReadRequest)
 		return nil, status.Error(codes.InvalidArgument, "notification_id is required")
 	}
 
-	err := h.service.MarkAsRead(ctx, req.NotificationId, req.UserId)
+	var notificationIDUint uint
+	_, err := fmt.Sscanf(req.NotificationId, "%d", &notificationIDUint)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "notification_id must be a valid unsigned integer")
+	}
+
+	var userIDUint uint
+	_, err = fmt.Sscanf(req.UserId, "%d", &userIDUint)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user_id must be a valid unsigned integer")
+	}
+
+	err = h.service.MarkAsRead(ctx, notificationIDUint, userIDUint)
 	if err != nil {
 		log.Printf("Failed to mark notification as read: %v", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to mark as read: %v", err))
@@ -211,7 +239,13 @@ func (h *GRPCHandler) RegisterDevice(ctx context.Context, req *pb.RegisterDevice
 		return nil, status.Error(codes.InvalidArgument, "user_id, device_token, and platform are required")
 	}
 
-	err := h.service.RegisterDeviceToken(ctx, req.UserId, req.DeviceToken, req.Platform)
+	var userIDUint uint
+	_, err := fmt.Sscanf(req.UserId, "%d", &userIDUint)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "user_id must be a valid unsigned integer")
+	}
+
+	err = h.service.RegisterDeviceToken(ctx, userIDUint, req.DeviceToken, req.Platform)
 	if err != nil {
 		log.Printf("Failed to register device: %v", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to register device: %v", err))
@@ -230,7 +264,17 @@ func (h *GRPCHandler) SendFriendRequest(ctx context.Context, req *pb.SendFriendR
 		return nil, status.Error(codes.InvalidArgument, "from_user_id, to_user_id, and from_username are required")
 	}
 
-	err := h.service.SendFriendRequestNotification(ctx, req.FromUserId, req.ToUserId, req.FromUsername)
+	var fromUserIDUint, toUserIDUint uint
+	_, err := fmt.Sscanf(req.FromUserId, "%d", &fromUserIDUint)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "from_user_id must be a valid unsigned integer")
+	}
+	_, err = fmt.Sscanf(req.ToUserId, "%d", &toUserIDUint)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "to_user_id must be a valid unsigned integer")
+	}
+
+	err = h.service.SendFriendRequestNotification(ctx, fromUserIDUint, toUserIDUint, req.FromUsername)
 	if err != nil {
 		log.Printf("Failed to send friend request notification: %v", err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to send friend request: %v", err))

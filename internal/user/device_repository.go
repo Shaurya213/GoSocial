@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
 	"gosocial/internal/dbmysql"
+
+	"gorm.io/gorm"
 )
 
 type DeviceRepository interface {
@@ -14,8 +15,8 @@ type DeviceRepository interface {
 	GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error)
 	UpdatedDeviceActivity(ctx context.Context, deviceToken string) error
 	RemovedDevice(ctx context.Context, deviceToken string) error
-	ActiveByUserID(ctx context.Context, userID string) ([]interface{}, error)
-	CreateOrUpdate(ctx context.Context, userID, deviceToken, platform string) error
+	ActiveByUserID(ctx context.Context, userID uint64) ([]interface{}, error)
+	CreateOrUpdate(ctx context.Context, userID uint64, deviceToken, platform string) error
 	UpdateTokenStatus(ctx context.Context, token string, isActive bool) error
 	DeleteToken(ctx context.Context, token string) error
 }
@@ -23,6 +24,7 @@ type DeviceRepository interface {
 type DeviceRepo struct {
 	db *gorm.DB
 }
+
 /*
 func NewDeviceRepository(db *gorm.DB) *DeviceRepo {
 	return &DeviceRepo{db: db}
@@ -59,7 +61,7 @@ func (r *DeviceRepo) RemovedDevice(ctx context.Context, deviceToken string) erro
 
 func (r *DeviceRepo) CreateOrUpdate(
 	ctx context.Context,
-	userID, deviceToken, platform string,
+	userID uint64, deviceToken, platform string,
 ) error {
 	device := &dbmysql.Device{
 		DeviceToken:  deviceToken,
@@ -78,7 +80,7 @@ func (r *DeviceRepo) CreateOrUpdate(
 
 func (r *DeviceRepo) ActiveByUserID(
 	ctx context.Context,
-	userID string,
+	userID uint64,
 ) ([]interface{}, error) {
 	var devices []*dbmysql.Device
 
@@ -89,7 +91,7 @@ func (r *DeviceRepo) ActiveByUserID(
 		Order("last_active DESC").
 		Find(&devices).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to get active devices: %w", err)
+		return nil, fmt.Errorf("failed to get active devices: %v", err)
 	}
 
 	result := make([]interface{}, len(devices))

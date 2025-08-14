@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"gosocial/internal/common"
-	"gosocial/internal/user"
 	"gosocial/internal/config"
 	"gosocial/internal/dbmysql"
+	"gosocial/internal/user"
 
 	"firebase.google.com/go/v4/messaging"
-	"github.com/google/uuid"
 )
 
 type NotificationSubject struct {
@@ -159,7 +158,7 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, event co
 	}
 
 	notification := &dbmysql.Notification{
-		ID:            uuid.New().String(),
+		// ID is omitted so the database can auto-increment it
 		UserID:        event.UserID,
 		Type:          event.Type,
 		Header:        event.Header,
@@ -183,8 +182,8 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, event co
 	return nil
 }
 
-func (s *NotificationService) GetUserNotifications(ctx context.Context, userID string, limit, offset int) ([]*dbmysql.Notification, error) {
-	results, err := s.repo.ByUserID(ctx, userID, limit, offset)
+func (s *NotificationService) GetUserNotifications(ctx context.Context, userID uint64, limit, offset int) ([]*dbmysql.Notification, error) {
+	results, err := s.repo.ByUserID(ctx, uint(userID), limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get notifications: %w", err)
 	}
@@ -201,19 +200,20 @@ func (s *NotificationService) GetUserNotifications(ctx context.Context, userID s
 	return notifications, nil
 }
 
-func (s *NotificationService) MarkAsRead(ctx context.Context, notificationID, userID string) error {
+func (s *NotificationService) MarkAsRead(ctx context.Context, notificationID uint, userID uint) error {
 	return s.repo.MarkAsRead(ctx, notificationID, userID)
 }
 
-func (s *NotificationService) RegisterDeviceToken(ctx context.Context, userID, deviceToken, platform string) error {
-	return s.deviceRepo.CreateOrUpdate(ctx, userID, deviceToken, platform)
+func (s *NotificationService) RegisterDeviceToken(ctx context.Context, userID uint, deviceToken, platform string) error {
+	return s.deviceRepo.CreateOrUpdate(ctx, uint64(userID), deviceToken, platform)
 }
 
-func (s *NotificationService) SendFriendRequestNotification(ctx context.Context, fromUserID, toUserID, fromUsername string) error {
+func (s *NotificationService) SendFriendRequestNotification(ctx context.Context, fromUserID uint, toUserID uint, fromUsername string) error {
+	fromUserIDStr := fmt.Sprintf("%d", fromUserID)
 	event := common.NotificationEvent{
 		Type:          common.FriendRequestType,
 		UserID:        toUserID,
-		TriggerUserID: &fromUserID,
+		TriggerUserID: &fromUserIDStr,
 		Header:        "Friend Request",
 		Content:       fmt.Sprintf("%s sent you a friend request", fromUsername),
 		Priority:      3,
@@ -268,7 +268,7 @@ func (s *NotificationService) processScheduledNotifications() {
 }
 
 func (s *NotificationService) validateEvent(event common.NotificationEvent) error {
-	if event.UserID == "" {
+	if event.UserID == 0 {
 		return fmt.Errorf("user_id is required")
 	}
 
