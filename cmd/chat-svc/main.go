@@ -30,6 +30,7 @@ func main() {
 	if err := app.DB.AutoMigrate(&dbmysql.Message{}); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
+
 	log.Println("✅ Database migration completed")
 
 	// Create gRPC server
@@ -41,7 +42,6 @@ func main() {
 	pb.RegisterChatServiceServer(grpcServer, app.Handler)
 	reflection.Register(grpcServer)
 
-	// Rest of your server setup...
 	lis, err := net.Listen("tcp", ":"+app.Config.Server.ChatServicePort)
 	if err != nil {
 		log.Fatalf("Failed to listen on port %s: %v", app.Config.Server.ChatServicePort, err)
@@ -55,7 +55,6 @@ func main() {
 		}
 	}()
 
-	// Wait for shutdown signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -65,12 +64,9 @@ func main() {
 	log.Println("Chat Service stopped")
 }
 
-func loggingUnaryInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (interface{}, error) {
+func loggingUnaryInterceptor(ctx context.Context, req interface{}, 
+info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+
 	start := time.Now()
 	log.Printf("→ %s", info.FullMethod)
 
@@ -86,12 +82,9 @@ func loggingUnaryInterceptor(
 	return resp, err
 }
 
-func loggingStreamInterceptor(
-	srv interface{},
-	stream grpc.ServerStream,
-	info *grpc.StreamServerInfo,
-	handler grpc.StreamHandler,
-) error {
+func loggingStreamInterceptor( srv interface{}, stream grpc.ServerStream,
+info *grpc.StreamServerInfo, handler grpc.StreamHandler,) error { 
+
 	log.Printf("⟷ %s stream started", info.FullMethod)
 	err := handler(srv, stream)
 

@@ -68,7 +68,6 @@ func (h *ChatHandler) GetChatHistory(ctx context.Context, req *pb.GetChatHistory
 
 	protoMessages := make([]*pb.ChatMessage, 0, len(domainMessages))
 
-	// ✅ FIX: Safe bounds checking for pagination
 	start := int(req.Offset)
 	limit := int(req.Limit)
 
@@ -166,8 +165,8 @@ func (h *ChatHandler) broadcastToStream(conversationID string, msg *pb.ChatMessa
 
 	for _, stream := range streams {
 		if err := stream.Send(msg); err != nil {
-			log.Printf("Failed to print stream: %v", err)
-			//TODO: Remove failed steams
+			log.Printf("Failed to send to stream hence streampurged: %v", err)
+			h.removeStream(conversationID, stream)
 		}
 	}
 }
