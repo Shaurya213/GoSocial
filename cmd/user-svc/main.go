@@ -69,7 +69,7 @@ func main() {
 		log.Fatalf("Failegd to listen on port %s: %v", app.Config.Server.UserServicePort, err)
 	}
 	//allow server to run
-	log.Println("User Service is Running bhai")
+	log.Printf("User Service is Running bhai on port: %s", app.Config.Server.UserServicePort)
 	if err := server.Serve(listener); err != nil {
 		log.Fatalf("Failed to serve gRPC: %v", err)
 	}
