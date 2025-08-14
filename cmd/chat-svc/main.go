@@ -26,7 +26,7 @@ func main() {
 	}
 	defer cleanup()
 
-	// Run migrations in main.go where they fuckingn belong
+	// Run migrations in main.go where they belong
 	if err := app.DB.AutoMigrate(&dbmysql.Message{}); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
