@@ -179,7 +179,7 @@ func (d *DatabaseObserver) Name() string {
 func (d *DatabaseObserver) Update(event common.NotificationEvent) error {
 	notification := &dbmysql.Notification{
 		// ID:            uuid.New().String(),
-		UserID:        event.UserID,
+		UserID:        uint64(event.UserID),
 		Type:          event.Type,
 		Header:        event.Header,
 		Content:       event.Content,

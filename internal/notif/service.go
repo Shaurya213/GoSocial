@@ -159,7 +159,7 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, event co
 
 	notification := &dbmysql.Notification{
 		// ID is omitted so the database can auto-increment it
-		UserID:        event.UserID,
+		UserID:        uint64(event.UserID),
 		Type:          event.Type,
 		Header:        event.Header,
 		Content:       event.Content,
@@ -243,7 +243,7 @@ func (s *NotificationService) processScheduledNotifications() {
 			if notif, ok := notifInterface.(*dbmysql.Notification); ok {
 				event := common.NotificationEvent{
 					Type:          notif.Type,
-					UserID:        notif.UserID,
+					UserID:        uint(notif.UserID),
 					TriggerUserID: notif.TriggerUserID,
 					Header:        notif.Header,
 					Content:       notif.Content,
