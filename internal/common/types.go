@@ -29,7 +29,7 @@ type NotificationMetadata map[string]interface{}
 
 type NotificationEvent struct {
 	Type          NotificationType
-	UserID        string
+	UserID        uint
 	TriggerUserID *string
 	Header        string
 	Content       string
@@ -40,7 +40,7 @@ type NotificationEvent struct {
 }
 
 type NotificationResponse struct {
-	ID        string               `json:"id"`
+	ID        uint                 `json:"id"`
 	Type      string               `json:"type"`
 	Header    string               `json:"header"`
 	Content   string               `json:"content"`
