@@ -9,8 +9,8 @@ import (
 )
 
 type Notification struct {
-	ID            string  `gorm:"primaryKey;size:36"`
-	UserID        string  `gorm:"not null;index;size:36"`
+	ID            uint    `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserID        uint    `gorm:"not null;index" json:"user_id"`
 	Header        string  `gorm:"not null;size:255"`
 	Content       string  `gorm:"not null;type:text"`
 	ImageURL      *string `gorm:"size:512"`

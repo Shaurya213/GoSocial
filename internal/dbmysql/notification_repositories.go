@@ -31,12 +31,12 @@ func (r *notificationRepository) Create(ctx context.Context, notification interf
 	return nil
 }
 
-func (r *notificationRepository) ByID(ctx context.Context, id string) (interface{}, error) {
+func (r *notificationRepository) ByID(ctx context.Context, id uint) (interface{}, error) {
 	var notification Notification
 
 	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&notification).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("notification not found: %s", id)
+			return nil, fmt.Errorf("notification not found: %v", id)
 		}
 		return nil, fmt.Errorf("failed to get notification: %w", err)
 	}
@@ -46,7 +46,7 @@ func (r *notificationRepository) ByID(ctx context.Context, id string) (interface
 
 func (r *notificationRepository) ByUserID(
 	ctx context.Context,
-	userID string,
+	userID uint,
 	limit, offset int,
 ) ([]interface{}, error) {
 	var notifications []*Notification
@@ -99,7 +99,7 @@ func (r *notificationRepository) ScheduledNotifications(
 	return result, nil
 }
 
-func (r *notificationRepository) UpdateStatus(ctx context.Context, id, status string) error {
+func (r *notificationRepository) UpdateStatus(ctx context.Context, id uint, status string) error {
 	result := r.db.WithContext(ctx).
 		Model(&Notification{}).
 		Where("id = ?", id).
@@ -113,13 +113,13 @@ func (r *notificationRepository) UpdateStatus(ctx context.Context, id, status st
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("notification not found: %s", id)
+		return fmt.Errorf("notification not found: %v", id)
 	}
 
 	return nil
 }
 
-func (r *notificationRepository) MarkAsRead(ctx context.Context, id, userID string) error {
+func (r *notificationRepository) MarkAsRead(ctx context.Context, id uint, userID uint) error {
 	now := time.Now()
 
 	result := r.db.WithContext(ctx).
@@ -136,13 +136,13 @@ func (r *notificationRepository) MarkAsRead(ctx context.Context, id, userID stri
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("notification not found or access denied: %s", id)
+		return fmt.Errorf("notification not found or access denied: %v", id)
 	}
 
 	return nil
 }
 
-func (r *notificationRepository) Delete(ctx context.Context, id string) error {
+func (r *notificationRepository) Delete(ctx context.Context, id uint) error {
 	result := r.db.WithContext(ctx).Delete(&Notification{}, "id = ?", id)
 
 	if result.Error != nil {
@@ -150,13 +150,13 @@ func (r *notificationRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("notification not found: %s", id)
+		return fmt.Errorf("notification not found: %v", id)
 	}
 
 	return nil
 }
 
-func (r *notificationRepository) UnreadCount(ctx context.Context, userID string) (int64, error) {
+func (r *notificationRepository) UnreadCount(ctx context.Context, userID uint) (int64, error) {
 	var count int64
 
 	err := r.db.WithContext(ctx).
@@ -169,94 +169,4 @@ func (r *notificationRepository) UnreadCount(ctx context.Context, userID string)
 	}
 
 	return count, nil
-}
-
-type deviceRepository struct {
-	db *gorm.DB
-}
-
-func NewDeviceRepository(db *gorm.DB) common.DeviceRepository {
-	return &deviceRepository{
-		db: db,
-	}
-}
-
-func (r *deviceRepository) CreateOrUpdate(
-	ctx context.Context,
-	userID, deviceToken, platform string,
-) error {
-	device := &Device{
-		DeviceToken:  deviceToken,
-		UserID:       userID,
-		Platform:     platform,
-		RegisteredAt: time.Now(),
-		LastActive:   time.Now(),
-	}
-
-	if err := r.db.WithContext(ctx).Save(device).Error; err != nil {
-		return fmt.Errorf("failed to create/update device: %w", err)
-	}
-
-	return nil
-}
-
-func (r *deviceRepository) ActiveByUserID(
-	ctx context.Context,
-	userID string,
-) ([]interface{}, error) {
-	var devices []*Device
-
-	cutoffTime := time.Now().AddDate(0, 0, -30)
-
-	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND last_active > ?", userID, cutoffTime).
-		Order("last_active DESC").
-		Find(&devices).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get active devices: %w", err)
-	}
-
-	result := make([]interface{}, len(devices))
-	for i, device := range devices {
-		result[i] = device
-	}
-
-	return result, nil
-}
-
-func (r *deviceRepository) UpdateTokenStatus(
-	ctx context.Context,
-	token string,
-	isActive bool,
-) error {
-	updates := map[string]interface{}{}
-
-	if !isActive {
-
-		updates["last_active"] = time.Now().AddDate(-1, 0, 0)
-	} else {
-		updates["last_active"] = time.Now()
-	}
-
-	result := r.db.WithContext(ctx).
-		Model(&Device{}).
-		Where("device_token = ?", token).
-		Updates(updates)
-
-	if result.Error != nil {
-		return fmt.Errorf("failed to update token status: %w", result.Error)
-	}
-
-	return nil
-}
-
-func (r *deviceRepository) DeleteToken(ctx context.Context, token string) error {
-	result := r.db.WithContext(ctx).Delete(&Device{}, "device_token = ?", token)
-
-	if result.Error != nil {
-		return fmt.Errorf("failed to delete device token: %w", result.Error)
-	}
-
-	return nil
 }

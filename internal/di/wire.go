@@ -4,6 +4,14 @@
 package di
 
 import (
+	"github.com/google/wire"
+	"gorm.io/gorm"
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/messaging"
+	"context"
+	"google.golang.org/api/option"
+
+	"gosocial/internal/user"
 	"gosocial/internal/chat/handler"
 	"gosocial/internal/chat/repository"
 	"gosocial/internal/chat/service"
@@ -11,18 +19,38 @@ import (
 	"gosocial/internal/common"
 	"gosocial/internal/dbmysql"
 	"gosocial/internal/notif"
+
 	"log"
-
-	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/messaging"
-	"context"
-	"google.golang.org/api/option"
-	
-	"gorm.io/gorm"
-
-	"github.com/google/wire"
 )
 
+//USER
+type UserApp struct {
+    Handler *user.Handler
+    DB      *gorm.DB
+    Config  *config.Config
+}
+
+var UserSet = wire.NewSet(
+	config.LoadConfig,
+	dbmysql.NewMySQL,
+	user.NewDeviceRepository,
+	//wire.Bind(new(user.DeviceRepository), new(*user.DeviceRepo)),
+	user.NewUserRepository,
+	user.NewFriendRepository,
+	user.NewUserService,
+	user.NewHandler,
+	wire.Struct(new(UserApp), "*"), // Wire creates ChatApp with all fields
+)
+
+func InitializeUserHandler() (*UserApp, error) {
+	wire.Build(UserSet)
+	return nil, nil
+}
+// wire entry point
+// it needs *user.Handler, so we are returning it with along all the helper or provider set
+// giving or passing *gorm.DB do wire won't generate it
+
+// CHATS
 type ChatApp struct {
     Handler *handler.ChatHandler
     DB      *gorm.DB
@@ -44,6 +72,7 @@ func InitializeChatService() (*ChatApp, func(), error) {
     return nil, nil, nil
 }
 
+//NOTIFICATIONS
 type Application struct {
 	Config  *config.Config
 	DB      *gorm.DB
@@ -54,10 +83,10 @@ type Application struct {
 func InitializeApplication() (*Application, error) {
 	wire.Build(
 		config.LoadConfig,
-		//ProvideDatabaseConnection,
 		dbmysql.NewMySQL,
+		user.NewDeviceRepository,
 		dbmysql.NewNotificationRepository,
-		dbmysql.NewDeviceRepository,
+		//wire.Bind(new(user.DeviceRepository), new(*user.DeviceRepo)),
 		ProvideFirebaseApp,
 		ProvideFirebaseMessaging,
 		ProvideEmailService,

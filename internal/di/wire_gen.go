@@ -20,10 +20,30 @@ import (
 	"gosocial/internal/config"
 	"gosocial/internal/dbmysql"
 	"gosocial/internal/notif"
+	"gosocial/internal/user"
 	"log"
 )
 
 // Injectors from wire.go:
+
+func InitializeUserHandler() (*UserApp, error) {
+	configConfig := config.LoadConfig()
+	db, err := dbmysql.NewMySQL(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	userRepository := user.NewUserRepository(db)
+	friendRepository := user.NewFriendRepository(db)
+	deviceRepository := user.NewDeviceRepository(db)
+	userService := user.NewUserService(userRepository, friendRepository, deviceRepository)
+	handler := user.NewHandler(userService)
+	userApp := &UserApp{
+		Handler: handler,
+		DB:      db,
+		Config:  configConfig,
+	}
+	return userApp, nil
+}
 
 // InitializeChatService now returns ChatApp with both handler and DB
 func InitializeChatService() (*ChatApp, func(), error) {
@@ -51,7 +71,7 @@ func InitializeApplication() (*Application, error) {
 		return nil, err
 	}
 	notificationRepository := dbmysql.NewNotificationRepository(db)
-	deviceRepository := dbmysql.NewDeviceRepository(db)
+	deviceRepository := user.NewDeviceRepository(db)
 	app, err := ProvideFirebaseApp(configConfig)
 	if err != nil {
 		return nil, err
@@ -75,6 +95,16 @@ func InitializeApplication() (*Application, error) {
 
 // wire.go:
 
+// USER
+type UserApp struct {
+	Handler *user.Handler
+	DB      *gorm.DB
+	Config  *config.Config
+}
+
+var UserSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, user.NewDeviceRepository, user.NewUserRepository, user.NewFriendRepository, user.NewUserService, user.NewHandler, wire.Struct(new(UserApp), "*"))
+
+// CHATS
 type ChatApp struct {
 	Handler *handler.ChatHandler
 	DB      *gorm.DB
@@ -83,6 +113,7 @@ type ChatApp struct {
 
 var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler, wire.Struct(new(ChatApp), "*"))
 
+// NOTIFICATIONS
 type Application struct {
 	Config  *config.Config
 	DB      *gorm.DB
