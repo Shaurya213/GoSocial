@@ -9,4 +9,5 @@ Check if containers are running
 
 # Chats
 ## Working chat streaming
-<img width="3072" height="1728" alt="image" src="https://github.com/user-attachments/assets/2fa36d67-f319-476b-b453-5ddcfd4b7f67" />
+<img width="3072" height="1728" alt="image" src="https://github.com/user-attachments/assets/7cfa18cb-6204-4056-8214-0c4c306d4793" />
+
