@@ -1,7 +1,10 @@
 package dbmysql
 
-import "time"
+import (
+	"time"
+)
 
+// content.go
 type Content struct {
 	ContentID   int64      `gorm:"primaryKey;autoIncrement;column:content_id"`
 	AuthorID    int64      `gorm:"column:author_id"`
@@ -14,6 +17,6 @@ type Content struct {
 	CreatedAt   time.Time  `gorm:"column:created_at"`
 	UpdatedAt   time.Time  `gorm:"column:updated_at"`
 
-	user     User     `gorm:"foreignKey:AuthorID;references:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	MediaRef MediaRef `gorm:"foreignKey:MediaRefID;references:MediaRefID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	User     User     `gorm:"foreignKey:AuthorID"`
+	MediaRef MediaRef `gorm:"references:MediaRefID"` // no foreignKey here, fk is inferred from MediaRefID field
 }

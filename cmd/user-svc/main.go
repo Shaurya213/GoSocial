@@ -4,28 +4,29 @@ import (
 	"fmt"
 	"gosocial/internal/common"
 	"gosocial/internal/di"
+	"gosocial/internal/shared"
 	"log"
 	"net"
 	"os"
 
 	pb "gosocial/api/v1/user"
 
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 	fmt.Println("gosocial user main")
-	
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Println(".env file not found, using system env variables")
 	}
-	
+
 	//step-1
 	//Load Configurations for database
-	dbconfig := common.GetDatabaseConfig()
+	dbconfig := shared.GetDatabaseConfig()
 
 	//load configuration for server
 	serverport := os.Getenv("SERVER_PORT")
@@ -37,7 +38,7 @@ func main() {
 
 	//step-2
 	//initializing database
-	db, err := common.InitDatabase(dbconfig)
+	db, err := shared.InitDatabase(dbconfig)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -93,5 +94,3 @@ func main() {
 	}
 
 }
-
-

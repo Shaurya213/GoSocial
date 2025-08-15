@@ -1,11 +1,13 @@
 package feed
 
 import (
-	"GoSocial/internal/dbmongo"
-	"GoSocial/internal/dbmysql"
-	//feed "GoSocial/internal/feed"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"gosocial/internal/dbmongo"
+	"gosocial/internal/dbmysql"
+	"strconv"
+
 	"context"
-	//"fmt"
+
 	"testing"
 	"time"
 
@@ -17,7 +19,7 @@ import (
 
 var (
 	db         *gorm.DB
-	gridClient *dbmongo.GridFSClient
+	gridClient *dbmongo.MediaStorage
 	repo       *FeedRepository
 )
 
@@ -52,12 +54,22 @@ func setup(t *testing.T) {
 		t.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	// Use a test database; Mongo will create it on first write
-	gridClient, err = dbmongo.NewGridFSClient(mc.Database("gosocial_test"))
+	mdb := mc.Database("gosocial_test")
+
+	bucket, err := gridfs.NewBucket(mdb)
 	if err != nil {
-		t.Fatalf("Failed to create GridFS client: %v", err)
+		t.Fatalf("Failed to create GridFS bucket: %v", err)
 	}
 
+	// Build the wrapper expected by NewMediaStorage
+	mongoClient := &dbmongo.MongoClient{
+		Database: mdb,
+		GridFS:   bucket,
+	}
+
+	gridClient = dbmongo.NewMediaStorage(mongoClient)
+
+	// Wire the repository (use the GORM `db`, not `mdb`)
 	repo = NewFeedRepository(db, gridClient)
 }
 
@@ -109,7 +121,7 @@ func TestMediaRefCRUD(t *testing.T) {
 	media := &dbmysql.MediaRef{
 		Type:       "image",
 		FileName:   "test.png",
-		UploadedBy: 1,
+		UploadedBy: strconv.Itoa(1),
 		UploadedAt: time.Now(),
 	}
 	data := []byte("sample content")
@@ -119,7 +131,7 @@ func TestMediaRefCRUD(t *testing.T) {
 		t.Fatalf("CreateMediaRef failed: %v", err)
 	}
 
-	meta, fetchedData, err := repo.GetMediaRefByID(context.Background(), media.MediaRefID)
+	meta, fetchedData, err := repo.GetMediaRefByID(context.Background(), int64(media.MediaRefID))
 	if err != nil {
 		t.Fatalf("GetMediaRefByID failed: %v", err)
 	}
@@ -127,7 +139,7 @@ func TestMediaRefCRUD(t *testing.T) {
 		t.Errorf("Mismatch in media data")
 	}
 
-	err = repo.DeleteMedia(context.Background(), media.MediaRefID)
+	err = repo.DeleteMedia(context.Background(), int64(media.MediaRefID))
 	if err != nil {
 		t.Fatalf("DeleteMedia failed: %v", err)
 	}

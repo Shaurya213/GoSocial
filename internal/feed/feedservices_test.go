@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"testing"
 	"time"
 
-	userpb "GoSocial/api/v1/user"
-	"GoSocial/internal/dbmysql"
+	userpb "gosocial/api/v1/user"
+	"gosocial/internal/dbmysql"
 
 	"google.golang.org/grpc"
 )
@@ -80,13 +81,13 @@ func newFakeMediaRepo() *fakeMediaRepo {
 	return &fakeMediaRepo{meta: map[int64]dbmysql.MediaRef{}, data: map[int64][]byte{}, next: 1}
 }
 func (m *fakeMediaRepo) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) error {
-	media.MediaRefID = m.next
+	media.MediaRefID = uint(m.next)
 	m.next++
-	if media.FilePath == "" {
-		media.FilePath = "deadbeef"
+	if media.FileID == "" {
+		media.FileID = "deadbeef"
 	}
-	m.meta[media.MediaRefID] = *media
-	m.data[media.MediaRefID] = append([]byte{}, fileData...)
+	m.meta[int64(media.MediaRefID)] = *media
+	m.data[int64(media.MediaRefID)] = append([]byte{}, fileData...)
 	return nil
 }
 func (m *fakeMediaRepo) GetMediaRefByID(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error) {
@@ -226,13 +227,13 @@ func TestService_CreateMediaRef_And_GetMediaRef(t *testing.T) {
 	rRepo := newFakeReactionRepo()
 	svc := &FeedService{contentRepo: cRepo, mediaRepo: mRepo, reactionRepo: rRepo}
 
-	m := &dbmysql.MediaRef{Type: "image", FileName: "a.png", UploadedBy: 1}
+	m := &dbmysql.MediaRef{Type: "image", FileName: "a.png", UploadedBy: strconv.Itoa(1)}
 	id, err := svc.CreateMediaRef(context.Background(), m, []byte("xx"))
 	if err != nil || id == 0 {
 		t.Fatalf("CreateMediaRef err=%v id=%d", err, id)
 	}
 	meta, data, err := svc.GetMediaRef(context.Background(), id)
-	if err != nil || meta.FilePath != "deadbeef" || string(data) != "xx" {
+	if err != nil || meta.FileID != "deadbeef" || string(data) != "xx" {
 		t.Fatalf("GetMediaRef mismatch: meta=%+v data=%s err=%v", meta, string(data), err)
 	}
 }

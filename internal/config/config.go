@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"os/exec"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -56,7 +56,6 @@ type FirebaseConfig struct { // FirebaseConfig contains Firebase Cloud Messaging
 	Enabled             bool   `json:"enabled"`
 }
 
-
 type NotificationConfig struct {
 	Workers                int  `json:"workers"`                  // Number of worker goroutines
 	ChannelBufferSize      int  `json:"channel_buffer_size"`      // Channel buffer size
@@ -65,7 +64,6 @@ type NotificationConfig struct {
 	RetryDelay             int  `json:"retry_delay"`              // Seconds
 	Enabled                bool `json:"enabled"`
 }
-
 
 type EmailConfig struct {
 	SMTPHost  string `json:"smtp_host"`
@@ -84,7 +82,6 @@ type LoggingConfig struct {
 	OutputPath string `json:"output"` // e.g., "stdout", "logfile.log"
 }
 
-
 type MongoDBConfig struct {
 	Host     string
 	Port     string
@@ -102,14 +99,14 @@ type MySQLConfig struct {
 }
 
 func LoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil{
-		log.Fatalf(".env is not laoding: %v", err)
+	err := godotenv.Load("cmd/.env")
+	if err != nil {
+		log.Fatalf(".env is not loading: %v", err)
 	}
 
 	cmd := exec.Command("bash", "-c", "curl ifconfig.me")
 	out, _ := cmd.Output()
-	ip:= string(out)
+	ip := string(out)
 	//ip = "localhost"
 
 	//Setting new envs
@@ -119,11 +116,11 @@ func LoadConfig() *Config {
 
 	return &Config{
 		Database: DatabaseConfig{
-			Port:     getEnv("MYSQL_PORT", "3306"),
-			Host:     getEnv("MYSQL_HOST", "localhost"),
-			Username: getEnv("MYSQL_USERNAME", "gosocial"),
-			Password: getEnv("MYSQL_PASSWORD", "gosocial123"),
-			DatabaseName: getEnv("MYSQL_DATABASE", "gosocial"),
+			Port:         getEnv("MYSQL_PORT", "3306"),
+			Host:         getEnv("MYSQL_HOST", "localhost"),
+			Username:     getEnv("MYSQL_USERNAME", "gosocial_user"),
+			Password:     getEnv("MYSQL_PASSWORD", "G0Social@123"),
+			DatabaseName: getEnv("MYSQL_DATABASE", "gosocial_db"),
 			MaxOpenConns: 25,
 			MaxIdleConns: 5,
 		},
@@ -167,7 +164,7 @@ func LoadConfig() *Config {
 			FeedServicePort:  getEnv("FEED_SERVICE_PORT", "7002"),
 			NotifServicePort: getEnv("NOTIF_SERVICE_PORT", "7004"),
 			MediaServicePort: getEnv("MEDIA_SERVER_PORT", "8080"),
-			MediaBaseURL: getEnv("MEDIA_BASE_URL", "http://localhost:8080/media"),
+			MediaBaseURL:     getEnv("MEDIA_BASE_URL", "http://localhost:8080/media"),
 		},
 	}
 }
@@ -175,13 +172,12 @@ func LoadConfig() *Config {
 func (c *Config) GetMongoURI() string {
 	if c.MongoDB.Username != "" && c.MongoDB.Password != "" {
 		return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin",
-		c.MongoDB.Username, c.MongoDB.Password,
-		c.MongoDB.Host, c.MongoDB.Port, c.MongoDB.Database)
+			c.MongoDB.Username, c.MongoDB.Password,
+			c.MongoDB.Host, c.MongoDB.Port, c.MongoDB.Database)
 	}
 	return fmt.Sprintf("mongodb://%s:%s/%s",
-	c.MongoDB.Host, c.MongoDB.Port, c.MongoDB.Database)
+		c.MongoDB.Host, c.MongoDB.Port, c.MongoDB.Database)
 }
-
 
 func (cfg *Config) DSN() string {
 	if cfg.Database.Host == "" {

@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
-	userpb "GoSocial/api/v1/user"
-	"GoSocial/internal/dbmysql"
+	userpb "gosocial/api/v1/user"
+	"gosocial/internal/dbmysql"
 )
 
 // media helper to generate media URLs
@@ -28,7 +29,7 @@ type FeedUsecase interface {
 	GetTimeline(ctx context.Context, userID int64) ([]dbmysql.Content, []string, error)
 	GetUserContent(ctx context.Context, requesterID, targetUserID int64) ([]dbmysql.Content, []string, error)
 
-	GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
+	GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error)
 
 	GetContent(ctx context.Context, id int64) (*dbmysql.Content, string, error)
 	DeleteContent(ctx context.Context, id int64) error
@@ -68,7 +69,7 @@ func (s *FeedService) CreateContent(ctx context.Context, content *dbmysql.Conten
 		media := &dbmysql.MediaRef{
 			Type:       mediatype, // or infer from file
 			FileName:   medianame, // maybe from HTTP request
-			UploadedBy: content.AuthorID,
+			UploadedBy: strconv.FormatInt(content.AuthorID, 10),
 		}
 
 		// Upload media and persist
@@ -76,8 +77,9 @@ func (s *FeedService) CreateContent(ctx context.Context, content *dbmysql.Conten
 			return 0, err
 		}
 
-		// Link saved media_ref_id back to content
-		content.MediaRefID = &media.MediaRefID
+		// Link saved media_ref_id back to content (convert uint to int64)
+		mediaRefID := int64(media.MediaRefID)
+		content.MediaRefID = &mediaRefID
 	}
 
 	// Step 2: Save content to MySQL
@@ -104,7 +106,7 @@ func (s *FeedService) GetContent(ctx context.Context, id int64) (*dbmysql.Conten
 	if content.MediaRefID != nil {
 		mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *content.MediaRefID)
 		if err == nil {
-			mediaURL = GetMediaURL(mediaMeta.FilePath) // FilePath = GridFS ObjectID
+			mediaURL = GetMediaURL(mediaMeta.FileID) // FilePath = GridFS ObjectID
 		}
 	}
 
@@ -139,7 +141,7 @@ func (s *FeedService) DeleteContent(ctx context.Context, id int64) error {
 func (s *FeedService) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) (int64, error) {
 	media.UploadedAt = time.Now()
 	err := s.mediaRepo.CreateMediaRef(ctx, media, fileData)
-	return media.MediaRefID, err
+	return int64(media.MediaRefID), err
 }
 
 func (s *FeedService) GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error) {
@@ -311,7 +313,7 @@ func (s *FeedService) GetTimeline(ctx context.Context, userID int64) ([]dbmysql.
 			if c.MediaRefID != nil {
 				mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
 				if err == nil {
-					allURLs = append(allURLs, GetMediaURL(mediaMeta.FilePath))
+					allURLs = append(allURLs, GetMediaURL(mediaMeta.FileID))
 				} else {
 					allURLs = append(allURLs, "")
 				}
@@ -343,7 +345,7 @@ func (s *FeedService) GetUserContent(ctx context.Context, requesterID, targetUse
 			if c.MediaRefID != nil {
 				mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
 				if err == nil {
-					urls = append(urls, GetMediaURL(mediaMeta.FilePath))
+					urls = append(urls, GetMediaURL(mediaMeta.FileID))
 				} else {
 					urls = append(urls, "")
 				}
@@ -379,7 +381,7 @@ func (s *FeedService) GetUserContent(ctx context.Context, requesterID, targetUse
 			if c.MediaRefID != nil {
 				mediaMeta, _, err := s.mediaRepo.GetMediaRefByID(ctx, *c.MediaRefID)
 				if err == nil {
-					mediaURLs = append(mediaURLs, GetMediaURL(mediaMeta.FilePath))
+					mediaURLs = append(mediaURLs, GetMediaURL(mediaMeta.FileID))
 				} else {
 					mediaURLs = append(mediaURLs, "")
 				}

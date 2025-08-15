@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	feedpb "GoSocial/api/v1/feed"
-	"GoSocial/internal/dbmysql"
+	feedpb "gosocial/api/v1/feed"
+	"gosocial/internal/dbmysql"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -237,7 +237,7 @@ func TestHandlers_GetMediaRef_GetContent_DeleteContent_Timeline_UserContent(t *t
 	// service with various behaviors
 	ok := &fakeFeedSvc{
 		GetMediaRefFn: func(ctx context.Context, id int64) (*dbmysql.MediaRef, error) {
-			return &dbmysql.MediaRef{MediaRefID: id, FilePath: "deadbeef"}, nil
+			return &dbmysql.MediaRef{MediaRefID: uint(id), FileID: "deadbeef"}, nil
 		},
 		GetContentFn: func(ctx context.Context, id int64) (*dbmysql.Content, string, error) {
 			txt := "hello"
@@ -471,7 +471,7 @@ func TestHandlers_AllHappyPaths(t *testing.T) {
 		},
 		DeleteReactionFn: func(context.Context, int64, int64) error { return nil },
 		GetMediaRefFn: func(context.Context, int64) (*dbmysql.MediaRef, error) {
-			return &dbmysql.MediaRef{MediaRefID: 1, FilePath: "file", Type: "image"}, nil
+			return &dbmysql.MediaRef{MediaRefID: 1, FileID: "file", Type: "image"}, nil
 		},
 		GetContentFn: func(context.Context, int64) (*dbmysql.Content, string, error) {
 			txt := "sample"

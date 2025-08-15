@@ -1,20 +1,23 @@
 package feed
 
 import (
-	"GoSocial/internal/dbmongo"
-	"GoSocial/internal/dbmysql"
+	"bytes"
 	"context"
+	"fmt"
 	"gorm.io/gorm"
+	"gosocial/internal/dbmongo"
+	"gosocial/internal/dbmysql"
+	"io"
 	"time"
 )
 
 type FeedRepository struct {
-	gridClient *dbmongo.GridFSClient
+	gridClient *dbmongo.MediaStorage
 	db         *gorm.DB
 }
 
-func NewFeedRepository(db *gorm.DB, gridclient *dbmongo.GridFSClient) *FeedRepository {
-	return &FeedRepository{db: db, gridClient: gridclient}
+func NewFeedRepository(db *gorm.DB, gridClient *dbmongo.MediaStorage) *FeedRepository {
+	return &FeedRepository{db: db, gridClient: gridClient}
 }
 
 // --------- CONTENT ---------
@@ -58,15 +61,15 @@ type MediaRef interface {
 
 func (r *FeedRepository) CreateMediaRef(ctx context.Context, media *dbmysql.MediaRef, fileData []byte) error {
 	// Step 1: Upload file to GridFS
-	fileID, err := r.gridClient.UploadFile(ctx, media.FileName, fileData)
+	mediaFile, err := r.gridClient.UploadFile(ctx, media.FileName, "application/octet-stream", fmt.Sprint(media.UploadedBy), bytes.NewReader(fileData))
 	if err != nil {
 		return err
 	}
 
-	// Step 2: Store fileID in SQL media_ref.file_path
-	media.FilePath = fileID.Hex() // Assuming fileID is an ObjectID and we store its hex representation
-	media.UploadedAt = time.Now()
-	media.SizeBytes = int64(len(fileData))
+	// Step 2: Store fileID in SQL media_ref.FileID (updated field name)
+	media.FileID = mediaFile.ID // GridFS ID as string
+	media.UploadedAt = mediaFile.UploadedAt
+	media.Size = mediaFile.Size
 
 	// Step 3: Save metadata to MySQL
 	return r.db.WithContext(ctx).Create(media).Error
@@ -81,8 +84,14 @@ func (r *FeedRepository) GetMediaRefByID(ctx context.Context, id int64) (*dbmysq
 		return nil, nil, err
 	}
 
-	// Step 2: Get actual file content from Mongo GridFS using file path (ObjectID)
-	fileData, err := r.gridClient.GetFileByID(ctx, media.FilePath)
+	// Step 2: Use updated DownloadFile from media_storage.go
+	reader, _, err := r.gridClient.DownloadFile(ctx, media.FileID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Step 3: Read file content
+	fileData, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -99,7 +108,7 @@ func (r *FeedRepository) DeleteMedia(ctx context.Context, mediaRefID int64) erro
 	}
 
 	// Step 2: Delete from GridFS
-	if err := r.gridClient.DeleteFile(ctx, media.FilePath); err != nil {
+	if err := r.gridClient.DeleteFile(ctx, media.FileID); err != nil {
 		return err
 	}
 

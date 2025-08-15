@@ -4,7 +4,7 @@ import (
 	"context"
 	//"time"
 
-	feedpb "GoSocial/api/v1/feed" // alias the generated package
+	feedpb "gosocial/api/v1/feed" // alias the generated package
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -129,24 +129,15 @@ func (h *FeedHandlers) CreateStory(ctx context.Context, req *feedpb.CreateStoryR
 	}, nil
 }
 
-func (h *FeedHandlers) ReactToContent(ctx context.Context, req *feedpb.ReactionRequest) (*feedpb.FeedResponse, error) {
-	if req.UserId <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
-	}
-	if req.ContentId <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "invalid content ID")
-	}
-	if req.Type == "" {
-		return nil, status.Error(codes.InvalidArgument, "reaction type must be specified")
-	}
-
-	// Call the service method to react to content
+func (h *FeedHandlers) ReactToContent(ctx context.Context, req *feedpb.ReactionRequest) (*feedpb.FeedStatusResponse, error) {
 	err := h.FeedSvc.ReactToContent(ctx, req.UserId, req.ContentId, req.Type)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to react to content: %v", err)
+		return &feedpb.FeedStatusResponse{
+			Message: err.Error(),
+		}, nil
 	}
 
-	return &feedpb.FeedResponse{
+	return &feedpb.FeedStatusResponse{
 		Message: "Reaction added successfully",
 	}, nil
 }
@@ -177,21 +168,15 @@ func (h *FeedHandlers) GetReactions(ctx context.Context, req *feedpb.ContentID) 
 	}, nil
 }
 
-func (h *FeedHandlers) DeleteReaction(ctx context.Context, req *feedpb.DeleteReactionRequest) (*feedpb.FeedResponse, error) {
-	if req.UserId <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
-	}
-	if req.ContentId <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "invalid content ID")
-	}
-
-	// Call the service method to delete reaction
+func (h *FeedHandlers) DeleteReaction(ctx context.Context, req *feedpb.DeleteReactionRequest) (*feedpb.FeedStatusResponse, error) {
 	err := h.FeedSvc.DeleteReaction(ctx, req.UserId, req.ContentId)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to delete reaction: %v", err)
+		return &feedpb.FeedStatusResponse{
+			Message: err.Error(),
+		}, nil
 	}
 
-	return &feedpb.FeedResponse{
+	return &feedpb.FeedStatusResponse{
 		Message: "Reaction deleted successfully",
 	}, nil
 }
@@ -202,15 +187,15 @@ func (h *FeedHandlers) GetMediaRef(ctx context.Context, req *feedpb.ContentID) (
 	}
 
 	// Call the service method to get media reference
-	mediaRef, err := h.FeedSvc.GetMediaRef(ctx, req.ContentId)
+	mediaRef, _, err := h.FeedSvc.GetMediaRef(ctx, req.ContentId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get media reference: %v", err)
 	}
 
 	return &feedpb.MediaResponse{
 
-		MediaRefId: mediaRef.MediaRefID,
-		FilePath:   mediaRef.FilePath,
+		MediaRefId: int64(mediaRef.MediaRefID),
+		FilePath:   mediaRef.URL,
 	}, nil
 }
 
@@ -232,7 +217,7 @@ func (h *FeedHandlers) GetContent(ctx context.Context, req *feedpb.ContentID) (*
 	}, nil
 }
 
-func (h *FeedHandlers) DeleteContent(ctx context.Context, req *feedpb.ContentID) (*feedpb.FeedResponse, error) {
+func (h *FeedHandlers) DeleteContent(ctx context.Context, req *feedpb.ContentID) (*feedpb.FeedStatusResponse, error) {
 	if req.ContentId <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "invalid content ID")
 	}
@@ -243,7 +228,7 @@ func (h *FeedHandlers) DeleteContent(ctx context.Context, req *feedpb.ContentID)
 		return nil, status.Errorf(codes.Internal, "failed to delete content: %v", err)
 	}
 
-	return &feedpb.FeedResponse{
+	return &feedpb.FeedStatusResponse{
 		Message: "Content deleted successfully",
 	}, nil
 }
