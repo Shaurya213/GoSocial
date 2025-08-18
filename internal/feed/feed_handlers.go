@@ -131,10 +131,13 @@ func (h *FeedHandlers) CreateStory(ctx context.Context, req *feedpb.CreateStoryR
 
 func (h *FeedHandlers) ReactToContent(ctx context.Context, req *feedpb.ReactionRequest) (*feedpb.FeedStatusResponse, error) {
 	err := h.FeedSvc.ReactToContent(ctx, req.UserId, req.ContentId, req.Type)
+
+	if req.UserId <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
 	if err != nil {
-		return &feedpb.FeedStatusResponse{
-			Message: err.Error(),
-		}, nil
+		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
 
 	return &feedpb.FeedStatusResponse{
@@ -169,13 +172,13 @@ func (h *FeedHandlers) GetReactions(ctx context.Context, req *feedpb.ContentID) 
 }
 
 func (h *FeedHandlers) DeleteReaction(ctx context.Context, req *feedpb.DeleteReactionRequest) (*feedpb.FeedStatusResponse, error) {
+	if req.UserId <= 0 || req.ContentId <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID or content ID")
+	}
 	err := h.FeedSvc.DeleteReaction(ctx, req.UserId, req.ContentId)
 	if err != nil {
-		return &feedpb.FeedStatusResponse{
-			Message: err.Error(),
-		}, nil
+		return nil, status.Errorf(codes.Internal, "%v", err)
 	}
-
 	return &feedpb.FeedStatusResponse{
 		Message: "Reaction deleted successfully",
 	}, nil

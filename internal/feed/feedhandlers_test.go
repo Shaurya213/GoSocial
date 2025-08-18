@@ -24,7 +24,7 @@ type fakeFeedSvc struct {
 	DeleteReactionFn func(ctx context.Context, userID, contentID int64) error
 	GetTimelineFn    func(ctx context.Context, userID int64) ([]dbmysql.Content, []string, error)
 	GetUserContentFn func(ctx context.Context, requesterID, targetUserID int64) ([]dbmysql.Content, []string, error)
-	GetMediaRefFn    func(ctx context.Context, id int64) (*dbmysql.MediaRef, error)
+	GetMediaRefFn    func(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error)
 	GetContentFn     func(ctx context.Context, id int64) (*dbmysql.Content, string, error)
 	DeleteContentFn  func(ctx context.Context, id int64) error
 }
@@ -53,7 +53,7 @@ func (f *fakeFeedSvc) GetTimeline(ctx context.Context, u int64) ([]dbmysql.Conte
 func (f *fakeFeedSvc) GetUserContent(ctx context.Context, r, t int64) ([]dbmysql.Content, []string, error) {
 	return f.GetUserContentFn(ctx, r, t)
 }
-func (f *fakeFeedSvc) GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, error) {
+func (f *fakeFeedSvc) GetMediaRef(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error) {
 	return f.GetMediaRefFn(ctx, id)
 }
 func (f *fakeFeedSvc) GetContent(ctx context.Context, id int64) (*dbmysql.Content, string, error) {
@@ -236,8 +236,8 @@ func TestHandlers_GetMediaRef_GetContent_DeleteContent_Timeline_UserContent(t *t
 	now := time.Now()
 	// service with various behaviors
 	ok := &fakeFeedSvc{
-		GetMediaRefFn: func(ctx context.Context, id int64) (*dbmysql.MediaRef, error) {
-			return &dbmysql.MediaRef{MediaRefID: uint(id), FileID: "deadbeef"}, nil
+		GetMediaRefFn: func(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error) {
+			return &dbmysql.MediaRef{MediaRefID: uint(id), FileID: "deadbeef", URL: "deadbeef"}, []byte{}, nil
 		},
 		GetContentFn: func(ctx context.Context, id int64) (*dbmysql.Content, string, error) {
 			txt := "hello"
@@ -406,7 +406,7 @@ func TestHandlers_ErrorBranches(t *testing.T) {
 		ReactToContentFn: func(context.Context, int64, int64, string) error { return errors.New("fail") },
 		GetReactionsFn:   func(context.Context, int64) ([]dbmysql.Reaction, error) { return nil, errors.New("fail") },
 		DeleteReactionFn: func(context.Context, int64, int64) error { return errors.New("fail") },
-		GetMediaRefFn:    func(context.Context, int64) (*dbmysql.MediaRef, error) { return nil, errors.New("fail") },
+		GetMediaRefFn:    func(context.Context, int64) (*dbmysql.MediaRef, []byte, error) { return nil, nil, errors.New("fail") },
 		GetTimelineFn:    func(context.Context, int64) ([]dbmysql.Content, []string, error) { return nil, nil, errors.New("fail") },
 		GetUserContentFn: func(context.Context, int64, int64) ([]dbmysql.Content, []string, error) {
 			return nil, nil, errors.New("fail")
@@ -425,8 +425,8 @@ func TestHandlers_ServiceInternalErrors(t *testing.T) {
 		GetContentFn: func(context.Context, int64) (*dbmysql.Content, string, error) {
 			return nil, "", errors.New("fail-content")
 		},
-		GetMediaRefFn: func(context.Context, int64) (*dbmysql.MediaRef, error) {
-			return nil, errors.New("fail-media")
+		GetMediaRefFn: func(context.Context, int64) (*dbmysql.MediaRef, []byte, error) {
+			return nil, nil, errors.New("fail-media")
 		},
 		GetTimelineFn: func(context.Context, int64) ([]dbmysql.Content, []string, error) {
 			return nil, nil, errors.New("fail-timeline")
@@ -470,8 +470,8 @@ func TestHandlers_AllHappyPaths(t *testing.T) {
 			return []dbmysql.Reaction{{UserID: 1, ContentID: 2, Type: "like"}}, nil
 		},
 		DeleteReactionFn: func(context.Context, int64, int64) error { return nil },
-		GetMediaRefFn: func(context.Context, int64) (*dbmysql.MediaRef, error) {
-			return &dbmysql.MediaRef{MediaRefID: 1, FileID: "file", Type: "image"}, nil
+		GetMediaRefFn: func(ctx context.Context, id int64) (*dbmysql.MediaRef, []byte, error) {
+			return &dbmysql.MediaRef{MediaRefID: uint(id), FileID: "deadbeef"}, []byte{}, nil
 		},
 		GetContentFn: func(context.Context, int64) (*dbmysql.Content, string, error) {
 			txt := "sample"
