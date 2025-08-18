@@ -737,14 +737,14 @@ func TestUserService_RemoveDevice(t *testing.T) {
 			name:  "success",
 			token: "fcm4",
 			setup: func() {
-				mockDeviceRepo.EXPECT().RemoveDevice(ctx, "fcm4").Return(nil)
+				mockDeviceRepo.EXPECT().RemovedDevice(ctx, "fcm4").Return(nil)
 			},
 		},
 		{
 			name:  "repo error",
 			token: "fcm4",
 			setup: func() {
-				mockDeviceRepo.EXPECT().RemoveDevice(ctx, "fcm4").Return(errors.New("delete err"))
+				mockDeviceRepo.EXPECT().RemovedDevice(ctx, "fcm4").Return(errors.New("delete err"))
 			},
 			wantErr: true,
 		},
@@ -833,14 +833,14 @@ func TestUserService_TouchDevice(t *testing.T) {
 			name:  "success",
 			token: "fcm8",
 			setup: func() {
-				mockDeviceRepo.EXPECT().UpdateDeviceActivity(ctx, "fcm8").Return(nil)
+				mockDeviceRepo.EXPECT().UpdatedDeviceActivity(ctx, "fcm8").Return(nil)
 			},
 		},
 		{
 			name:  "fail",
 			token: "fcm9",
 			setup: func() {
-				mockDeviceRepo.EXPECT().UpdateDeviceActivity(ctx, "fcm9").Return(errors.New("not found"))
+				mockDeviceRepo.EXPECT().UpdatedDeviceActivity(ctx, "fcm9").Return(errors.New("not found"))
 			},
 			wantErr: true,
 		},
@@ -848,7 +848,7 @@ func TestUserService_TouchDevice(t *testing.T) {
 			name: "activity DB error",
 			token: "failtoken",
 			setup: func() {
-				mockDeviceRepo.EXPECT().UpdateDeviceActivity(ctx, "failtoken").Return(errors.New("db err"))
+				mockDeviceRepo.EXPECT().UpdatedDeviceActivity(ctx, "failtoken").Return(errors.New("db err"))
 			},
 			wantErr: true,
 		},
