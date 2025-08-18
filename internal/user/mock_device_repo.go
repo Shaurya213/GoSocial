@@ -111,6 +111,7 @@ func (mr *MockDeviceRepositoryMockRecorder) RegisterDevice(ctx, device interface
 func (m *MockDeviceRepository) RemovedDevice(ctx context.Context, deviceToken string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemovedDevice", ctx, deviceToken)
+
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -125,6 +126,7 @@ func (mr *MockDeviceRepositoryMockRecorder) RemovedDevice(ctx, deviceToken inter
 func (m *MockDeviceRepository) UpdateTokenStatus(ctx context.Context, token string, isActive bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateTokenStatus", ctx, token, isActive)
+
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -147,4 +149,5 @@ func (m *MockDeviceRepository) UpdatedDeviceActivity(ctx context.Context, device
 func (mr *MockDeviceRepositoryMockRecorder) UpdatedDeviceActivity(ctx, deviceToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatedDeviceActivity", reflect.TypeOf((*MockDeviceRepository)(nil).UpdatedDeviceActivity), ctx, deviceToken)
+
 }
