@@ -7,164 +7,100 @@
 package di
 
 import (
-	"context"
-	"firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/messaging"
+	"fmt"
 	"github.com/google/wire"
-	"google.golang.org/api/option"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/gorm"
-	"gosocial/internal/chat/handler"
-	"gosocial/internal/chat/repository"
-	"gosocial/internal/chat/service"
-	"gosocial/internal/common"
+	"gosocial/api/v1/user"
 	"gosocial/internal/config"
+	"gosocial/internal/dbmongo"
 	"gosocial/internal/dbmysql"
-	"gosocial/internal/notif"
-	"gosocial/internal/user"
-	"log"
+	"gosocial/internal/feed"
 )
 
 // Injectors from wire.go:
 
-func InitializeUserHandler() (*UserApp, error) {
-	configConfig := config.LoadConfig()
-	db, err := dbmysql.NewMySQL(configConfig)
-	if err != nil {
-		return nil, err
-	}
-	userRepository := user.NewUserRepository(db)
-	friendRepository := user.NewFriendRepository(db)
-	deviceRepository := user.NewDeviceRepository(db)
-	userService := user.NewUserService(userRepository, friendRepository, deviceRepository)
-	handler := user.NewHandler(userService)
-	userApp := &UserApp{
-		Handler: handler,
-		DB:      db,
-		Config:  configConfig,
-	}
-	return userApp, nil
-}
-
-// InitializeChatService now returns ChatApp with both handler and DB
-func InitializeChatService() (*ChatApp, func(), error) {
+// Wire Entry Point
+func InitializeFeedService() (*FeedApp, func(), error) {
 	configConfig := config.LoadConfig()
 	db, err := dbmysql.NewMySQL(configConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	chatRepository := repository.NewChatRepository(db)
-	chatService := service.NewChatService(chatRepository)
-	chatHandler := handler.NewChatHandler(chatService)
-	chatApp := &ChatApp{
-		Handler: chatHandler,
-		DB:      db,
-		Config:  configConfig,
+	mongoClient, err := dbmongo.NewMongoConnection(configConfig)
+	if err != nil {
+		return nil, nil, err
 	}
-	return chatApp, func() {
+	mediaStorage := dbmongo.NewMediaStorage(mongoClient)
+	feedRepository := ProvideFeedRepository(db, mediaStorage)
+	userServiceClient, cleanup, err := ProvideUserServiceClient(configConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	feedService := ProvideFeedService(feedRepository, userServiceClient)
+	feedHandlers := ProvideFeedHandlers(feedService)
+	feedApp := &FeedApp{
+		Handler:      feedHandlers,
+		Service:      feedService,
+		Config:       configConfig,
+		DB:           db,
+		MediaStorage: mediaStorage,
+	}
+	return feedApp, func() {
+		cleanup()
 	}, nil
-}
-
-func InitializeApplication() (*Application, error) {
-	configConfig := config.LoadConfig()
-	db, err := dbmysql.NewMySQL(configConfig)
-	if err != nil {
-		return nil, err
-	}
-	notificationRepository := dbmysql.NewNotificationRepository(db)
-	deviceRepository := user.NewDeviceRepository(db)
-	app, err := ProvideFirebaseApp(configConfig)
-	if err != nil {
-		return nil, err
-	}
-	client, err := ProvideFirebaseMessaging(app)
-	if err != nil {
-		return nil, err
-	}
-	emailService := ProvideEmailService(configConfig)
-	notificationService := notif.NewNotificationService(configConfig, notificationRepository, deviceRepository, client, emailService)
-	notificationServiceInterface := ProvideNotificationServiceInterface(notificationService)
-	notificationHandler := notif.NewNotificationHandler(notificationServiceInterface, configConfig, client, deviceRepository)
-	application := &Application{
-		Config:  configConfig,
-		DB:      db,
-		Handler: notificationHandler,
-		Service: notificationService,
-	}
-	return application, nil
 }
 
 // wire.go:
 
-// USER
-type UserApp struct {
-	Handler *user.Handler
-	DB      *gorm.DB
-	Config  *config.Config
+// FEED SERVICE
+type FeedApp struct {
+	Handler      *feed.FeedHandlers
+	Service      *feed.FeedService
+	Config       *config.Config
+	DB           *gorm.DB
+	MediaStorage *dbmongo.MediaStorage // Add this
 }
 
-var UserSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, user.NewDeviceRepository, user.NewUserRepository, user.NewFriendRepository, user.NewUserService, user.NewHandler, wire.Struct(new(UserApp), "*"))
-
-// CHATS
-type ChatApp struct {
-	Handler *handler.ChatHandler
-	DB      *gorm.DB
-	Config  *config.Config
+// Provide FeedRepository
+func ProvideFeedRepository(db *gorm.DB, mediaStorage *dbmongo.MediaStorage) *feed.FeedRepository {
+	return feed.NewFeedRepository(db, mediaStorage)
 }
 
-var ChatProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, repository.NewChatRepository, service.NewChatService, handler.NewChatHandler, wire.Struct(new(ChatApp), "*"))
-
-// NOTIFICATIONS
-type Application struct {
-	Config  *config.Config
-	DB      *gorm.DB
-	Handler *notif.NotificationHandler
-	Service *notif.NotificationService
-}
-
-// FIXED: Add this provider function to convert concrete service to interface
-func ProvideNotificationServiceInterface(service2 *notif.NotificationService) notif.NotificationServiceInterface {
-	return service2
-}
-
-func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
-	if !cfg.Firebase.Enabled || cfg.Firebase.CredentialsFilePath == "" {
-		log.Println("Firebase disabled or credentials missing")
-		return nil, nil
-	}
-
-	opt := option.WithCredentialsFile(cfg.Firebase.CredentialsFilePath)
-	firebaseConfig := &firebase.Config{ProjectID: cfg.Firebase.ProjectID}
-
-	app, err := firebase.NewApp(context.Background(), firebaseConfig, opt)
+// Provide User Service Client
+func ProvideUserServiceClient(cfg *config.Config) (user.UserServiceClient, func(), error) {
+	conn, err := grpc.Dial(fmt.Sprintf("localhost:%s", cfg.Server.UserServicePort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Printf("Firebase init error: %v", err)
-		return nil, nil
+		return nil, nil, err
 	}
 
-	return app, nil
-}
-
-func ProvideFirebaseMessaging(app *firebase.App) (*messaging.Client, error) {
-	if app == nil {
-		log.Println("No Firebase app provided")
-		return nil, nil
+	client := user.NewUserServiceClient(conn)
+	cleanup := func() {
+		conn.Close()
 	}
 
-	client, err := app.Messaging(context.Background())
-	if err != nil {
-		log.Printf("Failed to get FCM client: %v", err)
-		return nil, nil
+	return client, cleanup, nil
+}
+
+// Provide FeedService
+func ProvideFeedService(
+	repo *feed.FeedRepository,
+	userClient user.UserServiceClient,
+) *feed.FeedService {
+	return feed.NewFeedService(repo, repo, repo, userClient)
+}
+
+// Provide FeedHandlers
+func ProvideFeedHandlers(feedService *feed.FeedService) *feed.FeedHandlers {
+	return &feed.FeedHandlers{
+		FeedSvc: feedService,
 	}
-	return client, nil
 }
 
-func ProvideEmailService(cfg *config.Config) common.EmailService {
-	return &MockEmailService{}
-}
-
-type MockEmailService struct{}
-
-func (m *MockEmailService) SendEmail(to, subject, body string) error {
-	log.Printf("Mock Email - To: %s | Subject: %s", to, subject)
-	return nil
-}
+// Provider Set
+var FeedProviderSet = wire.NewSet(config.LoadConfig, dbmysql.NewMySQL, dbmongo.NewMongoConnection, dbmongo.NewMediaStorage, ProvideFeedRepository,
+	ProvideUserServiceClient,
+	ProvideFeedService,
+	ProvideFeedHandlers, wire.Struct(new(FeedApp), "*"),
+)
