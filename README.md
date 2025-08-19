@@ -30,7 +30,7 @@ Notifications
 go run ./cmd/notifs-svc/
 ```
 
-Notifications
+Feed
 ```
 go run ./cmd/feed-svc/
 ```
