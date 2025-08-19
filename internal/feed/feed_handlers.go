@@ -49,9 +49,19 @@ func (h *FeedHandlers) CreatePost(ctx context.Context, req *feedpb.CreatePostReq
 		return nil, status.Errorf(codes.Internal, "failed to create post: %v", err)
 	}
 
+	_, mediaURL, err := h.FeedSvc.GetContent(ctx, postID)
+	if err != nil {
+		// If we can't get content, still return success but without URL
+		return &feedpb.FeedResponse{
+			ContentId: postID,
+			Message:   "Story created successfully",
+		}, nil
+	}
+
 	return &feedpb.FeedResponse{
 		ContentId: postID,
-		Message:   "Post created successfully",
+		MediaUrl:  mediaURL, // Now includes the URL
+		Message:   "Story created successfully",
 	}, nil
 }
 
@@ -89,10 +99,21 @@ func (h *FeedHandlers) CreateReel(ctx context.Context, req *feedpb.CreateReelReq
 		return nil, status.Errorf(codes.Internal, "failed to create reel: %v", err)
 	}
 
+	_, mediaURL, err := h.FeedSvc.GetContent(ctx, reelID)
+	if err != nil {
+		// If we can't get content, still return success but without URL
+		return &feedpb.FeedResponse{
+			ContentId: reelID,
+			Message:   "Story created successfully",
+		}, nil
+	}
+
 	return &feedpb.FeedResponse{
 		ContentId: reelID,
-		Message:   "Reel created successfully",
+		MediaUrl:  mediaURL, // Now includes the URL
+		Message:   "Story created successfully",
 	}, nil
+
 }
 
 func (h *FeedHandlers) CreateStory(ctx context.Context, req *feedpb.CreateStoryRequest) (*feedpb.FeedResponse, error) {
@@ -123,8 +144,18 @@ func (h *FeedHandlers) CreateStory(ctx context.Context, req *feedpb.CreateStoryR
 		return nil, status.Errorf(codes.Internal, "failed to create story: %v", err)
 	}
 
+	_, mediaURL, err := h.FeedSvc.GetContent(ctx, storyID)
+	if err != nil {
+		// If we can't get content, still return success but without URL
+		return &feedpb.FeedResponse{
+			ContentId: storyID,
+			Message:   "Story created successfully",
+		}, nil
+	}
+
 	return &feedpb.FeedResponse{
 		ContentId: storyID,
+		MediaUrl:  mediaURL, // Now includes the URL
 		Message:   "Story created successfully",
 	}, nil
 }
