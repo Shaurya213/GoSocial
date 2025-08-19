@@ -60,3 +60,11 @@ func LoadConfig() *Config {
 ## Working chat streaming
 <img width="3072" height="1728" alt="image" src="https://github.com/user-attachments/assets/7cfa18cb-6204-4056-8214-0c4c306d4793" />
 
+
+Check if containers are running
+`docker ps`
+
+# Chats
+## Working Chat streaming
+
+

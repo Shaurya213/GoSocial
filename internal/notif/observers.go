@@ -22,7 +22,9 @@ type FCMObserver struct {
 
 func NewFCMObserver(
 	fcmClient *messaging.Client,
+
 	deviceRepo user.DeviceRepository,
+
 ) *FCMObserver {
 	return &FCMObserver{
 		fcmClient:  fcmClient,
@@ -51,7 +53,7 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 	}
 
 	if len(devicesInterface) == 0 {
-		log.Printf("No active devices found for user: %s", event.UserID)
+		log.Printf("No active devices found for user: %d", event.UserID)
 		return nil
 	}
 
@@ -65,7 +67,7 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 	}
 
 	if len(tokens) == 0 {
-		log.Printf("No valid device tokens found for user: %s", event.UserID)
+		log.Printf("No valid device tokens found for user: %d", event.UserID)
 		return nil
 	}
 
@@ -75,7 +77,8 @@ func (f *FCMObserver) Update(event common.NotificationEvent) error {
 			Body:  event.Content,
 		},
 		Data: map[string]string{
-			"type":    string(event.Type),
+			"type": string(event.Type),
+
 			"user_id": fmt.Sprintf("%d", event.UserID),
 		},
 		Tokens: tokens,
@@ -178,8 +181,7 @@ func (d *DatabaseObserver) Name() string {
 
 func (d *DatabaseObserver) Update(event common.NotificationEvent) error {
 	notification := &dbmysql.Notification{
-		// ID:            uuid.New().String(),
-		UserID:        event.UserID,
+		UserID:        uint64(event.UserID),
 		Type:          event.Type,
 		Header:        event.Header,
 		Content:       event.Content,

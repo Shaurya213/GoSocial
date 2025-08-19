@@ -6,6 +6,7 @@ import (
 	"gosocial/internal/common"
 	"gosocial/internal/dbmysql"
 	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -15,14 +16,12 @@ func TestUserService_RegisterUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-
 	mockUserRepo := NewMockUserRepository(ctrl)
 	mockFriendRepo := NewMockFriendRepository(ctrl)
 	mockDeviceRepo := NewMockDeviceRepository(ctrl)
 	svc := NewUserService(mockUserRepo, mockFriendRepo, mockDeviceRepo)
 	ctx := context.Background()
 
-	
 	tests := []struct {
 		name        string
 		handle      string
@@ -68,47 +67,46 @@ func TestUserService_RegisterUser(t *testing.T) {
 		},
 
 		{
-			name: "invalid email",
-			handle: "alicegood",
-			email: "bademail",
-			password: "Password123",
-			setup: func(){},
-			wantErr: true,
+			name:        "invalid email",
+			handle:      "alicegood",
+			email:       "bademail",
+			password:    "Password123",
+			setup:       func() {},
+			wantErr:     true,
 			errContains: "email",
 		},
 		{
-			name: "invalid password",
-			handle: "alicia",
-			email: "alic@g.com",
-			password: "short",
-			setup: func(){},
-			wantErr: true,
+			name:        "invalid password",
+			handle:      "alicia",
+			email:       "alic@g.com",
+			password:    "short",
+			setup:       func() {},
+			wantErr:     true,
 			errContains: "password",
 		},
 		{
-			name: "repo failure exist check",
-			handle: "alicefail",
-			email: "alice@fail.com",
+			name:     "repo failure exist check",
+			handle:   "alicefail",
+			email:    "alice@fail.com",
 			password: "Password123",
 			setup: func() {
-			mockUserRepo.EXPECT().CheckUserExists(ctx, "alicefail").Return(false, errors.New("db is down"))
+				mockUserRepo.EXPECT().CheckUserExists(ctx, "alicefail").Return(false, errors.New("db is down"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "db is down",
 		},
 		{
-			name: "repo failure create user",
-			handle: "alicefail2",
-			email: "alice2@fail.com",
+			name:     "repo failure create user",
+			handle:   "alicefail2",
+			email:    "alice2@fail.com",
 			password: "Password123",
 			setup: func() {
-			mockUserRepo.EXPECT().CheckUserExists(ctx, "alicefail2").Return(false, nil)
-			mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(errors.New("create fail"))
+				mockUserRepo.EXPECT().CheckUserExists(ctx, "alicefail2").Return(false, nil)
+				mockUserRepo.EXPECT().CreateUser(ctx, gomock.Any()).Return(errors.New("create fail"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "create fail",
 		},
-
 	}
 
 	for _, tc := range tests {
@@ -197,8 +195,6 @@ func TestUserService_LoginUser(t *testing.T) {
 			wantErr:     true,
 			errContains: "not active",
 		},
-		
-
 	}
 
 	for _, tc := range tests {
@@ -221,7 +217,6 @@ func TestUserService_LoginUser(t *testing.T) {
 		})
 	}
 }
-
 
 func TestUserService_GetProfile(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -346,8 +341,8 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			errContains: "invalid email",
 		},
 		{
-			name: "only phone update",
-			userID: 1,
+			name:     "only phone update",
+			userID:   1,
 			newPhone: "12345",
 			setup: func() {
 				mockUserRepo.EXPECT().GetUserByID(ctx, uint64(1)).Return(origUser, nil)
@@ -358,8 +353,8 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			},
 		},
 		{
-			name: "only profile update",
-			userID: 1,
+			name:       "only profile update",
+			userID:     1,
 			newProfile: "bio X",
 			setup: func() {
 				mockUserRepo.EXPECT().GetUserByID(ctx, uint64(1)).Return(origUser, nil)
@@ -370,18 +365,16 @@ func TestUserService_UpdateProfile(t *testing.T) {
 			},
 		},
 		{
-			name: "repo UpdateUser error",
-			userID: 1,
+			name:     "repo UpdateUser error",
+			userID:   1,
 			newEmail: "ok@b.com",
 			setup: func() {
 				mockUserRepo.EXPECT().GetUserByID(ctx, uint64(1)).Return(origUser, nil)
 				mockUserRepo.EXPECT().UpdateUser(ctx, gomock.AssignableToTypeOf(&dbmysql.User{})).Return(errors.New("fail update"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "fail update",
 		},
-
-
 	}
 
 	for _, tc := range tests {
@@ -450,44 +443,43 @@ func TestUserService_SendFriendRequest(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "CheckFriendshipExists error",
+			name:   "CheckFriendshipExists error",
 			userID: 1, targetID: 2,
 			setup: func() {
 				mockFriendRepo.EXPECT().CheckFriendshipExists(ctx, uint64(1), uint64(2)).Return(false, errors.New("db fail"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "db fail",
 		},
 		{
-			name: "CreateFriendRequest error",
+			name:   "CreateFriendRequest error",
 			userID: 1, targetID: 2,
 			setup: func() {
 				mockFriendRepo.EXPECT().CheckFriendshipExists(ctx, uint64(1), uint64(2)).Return(false, nil)
 				mockFriendRepo.EXPECT().CreateFriendRequest(ctx, gomock.Any()).Return(errors.New("db fail"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "db fail",
 		},
 		{
-			name: "CheckFriendshipExists error",
+			name:   "CheckFriendshipExists error",
 			userID: 1, targetID: 2,
 			setup: func() {
 				mockFriendRepo.EXPECT().CheckFriendshipExists(ctx, uint64(1), uint64(2)).Return(false, errors.New("db fail"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "db fail",
 		},
 		{
-			name: "CreateFriendRequest error",
+			name:   "CreateFriendRequest error",
 			userID: 1, targetID: 2,
 			setup: func() {
 				mockFriendRepo.EXPECT().CheckFriendshipExists(ctx, uint64(1), uint64(2)).Return(false, nil)
 				mockFriendRepo.EXPECT().CreateFriendRequest(ctx, gomock.Any()).Return(errors.New("db fail"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "db fail",
 		},
-
 	}
 
 	for _, tc := range tests {
@@ -505,8 +497,6 @@ func TestUserService_SendFriendRequest(t *testing.T) {
 		})
 	}
 }
-
-
 
 func TestUserService_AcceptFriendRequest(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -555,16 +545,16 @@ func TestUserService_AcceptFriendRequest(t *testing.T) {
 			wantErr: true, errContains: "pending",
 		},
 		{
-			name: "GetFriendRequest repo error",
+			name:   "GetFriendRequest repo error",
 			userID: 1, requesterID: 2,
 			setup: func() {
 				mockFriendRepo.EXPECT().GetFriendRequest(ctx, uint64(2), uint64(1)).Return(nil, errors.New("db err"))
 			},
-			wantErr: true,
+			wantErr:     true,
 			errContains: "db err",
 		},
 		{
-			name: "UpdateFriendRequest repo error",
+			name:   "UpdateFriendRequest repo error",
 			userID: 1, requesterID: 2,
 			setup: func() {
 				mockFriendRepo.EXPECT().GetFriendRequest(ctx, uint64(2), uint64(1)).Return(&dbmysql.Friend{Status: "pending"}, nil)
@@ -573,7 +563,7 @@ func TestUserService_AcceptFriendRequest(t *testing.T) {
 			wantErr: true, errContains: "db error",
 		},
 		{
-			name: "CreateFriendRequest error (reverse)",
+			name:   "CreateFriendRequest error (reverse)",
 			userID: 1, requesterID: 2,
 			setup: func() {
 				mockFriendRepo.EXPECT().GetFriendRequest(ctx, uint64(2), uint64(1)).Return(&dbmysql.Friend{Status: "pending"}, nil)
@@ -633,7 +623,6 @@ func TestUserService_ListFriends(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -696,13 +685,11 @@ func TestUserService_RegisterDevice(t *testing.T) {
 			wantErr: true, errContains: "oops",
 		},
 		{
-			name: "platform empty",
+			name:   "platform empty",
 			userID: 1, token: "t1", platform: "",
-			setup: func(){},
+			setup:   func() {},
 			wantErr: true, errContains: "platform",
 		},
-
-
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -737,18 +724,21 @@ func TestUserService_RemoveDevice(t *testing.T) {
 			name:  "success",
 			token: "fcm4",
 			setup: func() {
-				mockDeviceRepo.EXPECT().RemoveDevice(ctx, "fcm4").Return(nil)
+
+				mockDeviceRepo.EXPECT().RemovedDevice(ctx, "fcm4").Return(nil)
+
 			},
 		},
 		{
 			name:  "repo error",
 			token: "fcm4",
 			setup: func() {
-				mockDeviceRepo.EXPECT().RemoveDevice(ctx, "fcm4").Return(errors.New("delete err"))
+
+				mockDeviceRepo.EXPECT().RemovedDevice(ctx, "fcm4").Return(errors.New("delete err"))
+
 			},
 			wantErr: true,
 		},
-		
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -833,26 +823,31 @@ func TestUserService_TouchDevice(t *testing.T) {
 			name:  "success",
 			token: "fcm8",
 			setup: func() {
-				mockDeviceRepo.EXPECT().UpdateDeviceActivity(ctx, "fcm8").Return(nil)
+
+				mockDeviceRepo.EXPECT().UpdatedDeviceActivity(ctx, "fcm8").Return(nil)
+
 			},
 		},
 		{
 			name:  "fail",
 			token: "fcm9",
 			setup: func() {
-				mockDeviceRepo.EXPECT().UpdateDeviceActivity(ctx, "fcm9").Return(errors.New("not found"))
+
+				mockDeviceRepo.EXPECT().UpdatedDeviceActivity(ctx, "fcm9").Return(errors.New("not found"))
+
 			},
 			wantErr: true,
 		},
 		{
-			name: "activity DB error",
+			name:  "activity DB error",
 			token: "failtoken",
 			setup: func() {
-				mockDeviceRepo.EXPECT().UpdateDeviceActivity(ctx, "failtoken").Return(errors.New("db err"))
+
+				mockDeviceRepo.EXPECT().UpdatedDeviceActivity(ctx, "failtoken").Return(errors.New("db err"))
+
 			},
 			wantErr: true,
 		},
-
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -866,5 +861,3 @@ func TestUserService_TouchDevice(t *testing.T) {
 		})
 	}
 }
-
-
