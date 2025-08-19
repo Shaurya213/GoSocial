@@ -1,12 +1,13 @@
 package user
 
 import (
-	"GoSocial/internal/common"
-	"GoSocial/internal/dbmysql"
 	"context"
 	"errors"
-	"gorm.io/gorm"
+	"gosocial/internal/common"
+	"gosocial/internal/dbmysql"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type UserService interface {
@@ -218,7 +219,7 @@ func (s *userService) RegisterDevice(ctx context.Context, userID uint64, token, 
 }
 
 func (s *userService) RemoveDevice(ctx context.Context, token string) error {
-	return s.deviceRepo.RemoveDevice(ctx, token)
+	return s.deviceRepo.RemovedDevice(ctx, token)
 }
 
 func (s *userService) GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error) {
@@ -226,5 +227,5 @@ func (s *userService) GetUserDevices(ctx context.Context, userID uint64) ([]*dbm
 }
 
 func (s *userService) TouchDevice(ctx context.Context, token string) error {
-	return s.deviceRepo.UpdateDeviceActivity(ctx, token)
+	return s.deviceRepo.UpdatedDeviceActivity(ctx, token)
 }

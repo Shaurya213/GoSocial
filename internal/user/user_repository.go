@@ -1,30 +1,30 @@
 package user
 
 import (
-	"GoSocial/internal/dbmysql"
 	"context"
+	"gosocial/internal/dbmysql"
 	"gorm.io/gorm"
 )
 
 // in interface, all the merhods related to user is written, and implemented
 type UserRepository interface {
 	//for some basic crud, like create, getuserbyid, getuserbyprofile, updateuser
-	CreateUser(ctx context.Context, user *dbmysql.User) error
+	CreateUser (ctx context.Context, user *dbmysql.User) error
 	GetUserByID(ctx context.Context, userID uint64) (*dbmysql.User, error)
-	GetUserByHandle(ctx context.Context, handle string) (*dbmysql.User, error)
-	UpdateUser(ctx context.Context, user *dbmysql.User) error
+	GetUserByHandle(ctx context.Context, handle string)(*dbmysql.User, error)
+	UpdateUser (ctx context.Context, user *dbmysql.User) error
 
 	GetUserByEmail(ctx context.Context, email string) (*dbmysql.User, error)
 	CheckUserExists(ctx context.Context, handle string) (bool, error)
 }
 
-// this struct implements above struct
+//this struct implements above struct
 type userRepository struct {
 	db *gorm.DB //*gorm.DB points to the DB connection
 }
 
 func NewUserRepository(db *gorm.DB) UserRepository {
-	return &userRepository{db: db}
+    return &userRepository{db: db}
 }
 
 func (r *userRepository) CreateUser(ctx context.Context, user *dbmysql.User) error {
@@ -41,7 +41,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, userID uint64) (*dbmys
 	return &user, nil
 }
 
-func (r *userRepository) GetUserByHandle(ctx context.Context, handle string) (*dbmysql.User, error) {
+func (r *userRepository) GetUserByHandle(ctx context.Context, handle string)(*dbmysql.User, error) {
 	var user dbmysql.User
 	err := r.db.WithContext(ctx).Where("handle = ? AND status = ?", handle, "active").First(&user).Error
 	if err != nil {
@@ -63,6 +63,7 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*dbm
 	}
 	return &user, nil
 }
+
 
 func (r *userRepository) CheckUserExists(ctx context.Context, handle string) (bool, error) {
 	var count int64
