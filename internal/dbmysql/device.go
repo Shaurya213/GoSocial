@@ -14,5 +14,7 @@ type Device struct {
 	Platform     string    `gorm:"not null;size:10;column:platform;type:enum('android','ios','web')" json:"platform"`
 	RegisteredAt time.Time `gorm:"column:registered_at;autoCreateTime" json:"registered_at"`
 	LastActive   time.Time `gorm:"column:last_active;autoUpdateTime" json:"last_active"`
-	User         User      `gorm:"foreignKey:UserID;references:UserID" json:"user"`
+	User         User      `gorm:"-" json:"user,omitempty"`
+
+
 }

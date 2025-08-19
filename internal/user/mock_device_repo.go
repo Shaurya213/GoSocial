@@ -35,6 +35,49 @@ func (m *MockDeviceRepository) EXPECT() *MockDeviceRepositoryMockRecorder {
 	return m.recorder
 }
 
+// ActiveByUserID mocks base method.
+func (m *MockDeviceRepository) ActiveByUserID(ctx context.Context, userID uint64) ([]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ActiveByUserID", ctx, userID)
+	ret0, _ := ret[0].([]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ActiveByUserID indicates an expected call of ActiveByUserID.
+func (mr *MockDeviceRepositoryMockRecorder) ActiveByUserID(ctx, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveByUserID", reflect.TypeOf((*MockDeviceRepository)(nil).ActiveByUserID), ctx, userID)
+}
+
+// CreateOrUpdate mocks base method.
+func (m *MockDeviceRepository) CreateOrUpdate(ctx context.Context, userID uint64, deviceToken, platform string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateOrUpdate", ctx, userID, deviceToken, platform)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateOrUpdate indicates an expected call of CreateOrUpdate.
+func (mr *MockDeviceRepositoryMockRecorder) CreateOrUpdate(ctx, userID, deviceToken, platform interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrUpdate", reflect.TypeOf((*MockDeviceRepository)(nil).CreateOrUpdate), ctx, userID, deviceToken, platform)
+}
+
+// DeleteToken mocks base method.
+func (m *MockDeviceRepository) DeleteToken(ctx context.Context, token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteToken", ctx, token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteToken indicates an expected call of DeleteToken.
+func (mr *MockDeviceRepositoryMockRecorder) DeleteToken(ctx, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteToken", reflect.TypeOf((*MockDeviceRepository)(nil).DeleteToken), ctx, token)
+}
+
 // GetUserDevices mocks base method.
 func (m *MockDeviceRepository) GetUserDevices(ctx context.Context, userID uint64) ([]*dbmysql.Device, error) {
 	m.ctrl.T.Helper()
@@ -64,30 +107,47 @@ func (mr *MockDeviceRepositoryMockRecorder) RegisterDevice(ctx, device interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterDevice", reflect.TypeOf((*MockDeviceRepository)(nil).RegisterDevice), ctx, device)
 }
 
-// RemoveDevice mocks base method.
-func (m *MockDeviceRepository) RemoveDevice(ctx context.Context, deviceToken string) error {
+// RemovedDevice mocks base method.
+func (m *MockDeviceRepository) RemovedDevice(ctx context.Context, deviceToken string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveDevice", ctx, deviceToken)
+	ret := m.ctrl.Call(m, "RemovedDevice", ctx, deviceToken)
+
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RemoveDevice indicates an expected call of RemoveDevice.
-func (mr *MockDeviceRepositoryMockRecorder) RemoveDevice(ctx, deviceToken interface{}) *gomock.Call {
+// RemovedDevice indicates an expected call of RemovedDevice.
+func (mr *MockDeviceRepositoryMockRecorder) RemovedDevice(ctx, deviceToken interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveDevice", reflect.TypeOf((*MockDeviceRepository)(nil).RemoveDevice), ctx, deviceToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovedDevice", reflect.TypeOf((*MockDeviceRepository)(nil).RemovedDevice), ctx, deviceToken)
 }
 
-// UpdateDeviceActivity mocks base method.
-func (m *MockDeviceRepository) UpdateDeviceActivity(ctx context.Context, deviceToken string) error {
+// UpdateTokenStatus mocks base method.
+func (m *MockDeviceRepository) UpdateTokenStatus(ctx context.Context, token string, isActive bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateDeviceActivity", ctx, deviceToken)
+	ret := m.ctrl.Call(m, "UpdateTokenStatus", ctx, token, isActive)
+
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateDeviceActivity indicates an expected call of UpdateDeviceActivity.
-func (mr *MockDeviceRepositoryMockRecorder) UpdateDeviceActivity(ctx, deviceToken interface{}) *gomock.Call {
+// UpdateTokenStatus indicates an expected call of UpdateTokenStatus.
+func (mr *MockDeviceRepositoryMockRecorder) UpdateTokenStatus(ctx, token, isActive interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDeviceActivity", reflect.TypeOf((*MockDeviceRepository)(nil).UpdateDeviceActivity), ctx, deviceToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTokenStatus", reflect.TypeOf((*MockDeviceRepository)(nil).UpdateTokenStatus), ctx, token, isActive)
+}
+
+// UpdatedDeviceActivity mocks base method.
+func (m *MockDeviceRepository) UpdatedDeviceActivity(ctx context.Context, deviceToken string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatedDeviceActivity", ctx, deviceToken)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatedDeviceActivity indicates an expected call of UpdatedDeviceActivity.
+func (mr *MockDeviceRepositoryMockRecorder) UpdatedDeviceActivity(ctx, deviceToken interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatedDeviceActivity", reflect.TypeOf((*MockDeviceRepository)(nil).UpdatedDeviceActivity), ctx, deviceToken)
+
 }

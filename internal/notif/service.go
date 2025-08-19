@@ -102,8 +102,9 @@ func (ns *NotificationSubject) Shutdown() {
 }
 
 type NotificationService struct {
-	config       *config.Config
-	repo         common.NotificationRepository
+	config *config.Config
+	repo   common.NotificationRepository
+
 	deviceRepo   user.DeviceRepository
 	fcmClient    *messaging.Client
 	emailService common.EmailService
@@ -140,7 +141,7 @@ func (s *NotificationService) SendNotification(ctx context.Context, event common
 
 	s.subject.NotifyAsync(event)
 
-	log.Printf("Notification sent: type=%s, user=%s", event.Type, event.UserID)
+	log.Printf("Notification sent: type=%s, user=%v", event.Type, event.UserID)
 	return nil
 }
 
@@ -158,8 +159,9 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, event co
 	}
 
 	notification := &dbmysql.Notification{
+
 		// ID is omitted so the database can auto-increment it
-		UserID:        event.UserID,
+		UserID:        uint64(event.UserID),
 		Type:          event.Type,
 		Header:        event.Header,
 		Content:       event.Content,
@@ -177,13 +179,14 @@ func (s *NotificationService) ScheduleNotification(ctx context.Context, event co
 		return fmt.Errorf("failed to create scheduled notification: %w", err)
 	}
 
-	log.Printf("Notification scheduled: type=%s, user=%s, scheduled_at=%v",
+	log.Printf("Notification scheduled: type=%s, user=%v, scheduled_at=%v",
 		event.Type, event.UserID, event.ScheduledAt)
 	return nil
 }
 
 func (s *NotificationService) GetUserNotifications(ctx context.Context, userID uint64, limit, offset int) ([]*dbmysql.Notification, error) {
 	results, err := s.repo.ByUserID(ctx, uint(userID), limit, offset)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get notifications: %w", err)
 	}
@@ -217,6 +220,7 @@ func (s *NotificationService) SendFriendRequestNotification(ctx context.Context,
 		Header:        "Friend Request",
 		Content:       fmt.Sprintf("%s sent you a friend request", fromUsername),
 		Priority:      3,
+
 		Metadata: common.NotificationMetadata{
 			"from_user_id":  fromUserID,
 			"from_username": fromUsername,
@@ -242,8 +246,10 @@ func (s *NotificationService) processScheduledNotifications() {
 		for _, notifInterface := range notificationsInterface {
 			if notif, ok := notifInterface.(*dbmysql.Notification); ok {
 				event := common.NotificationEvent{
-					Type:          notif.Type,
-					UserID:        notif.UserID,
+					Type: notif.Type,
+
+					UserID: uint(notif.UserID),
+
 					TriggerUserID: notif.TriggerUserID,
 					Header:        notif.Header,
 					Content:       notif.Content,
@@ -269,6 +275,7 @@ func (s *NotificationService) processScheduledNotifications() {
 
 func (s *NotificationService) validateEvent(event common.NotificationEvent) error {
 	if event.UserID == 0 {
+
 		return fmt.Errorf("user_id is required")
 	}
 
