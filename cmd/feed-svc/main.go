@@ -2,10 +2,8 @@ package main
 
 import (
 	"context"
-	"io"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,7 +11,6 @@ import (
 	"time"
 
 	feedpb "gosocial/api/v1/feed"
-	"gosocial/internal/dbmongo"
 	"gosocial/internal/dbmysql"
 	"gosocial/internal/di"
 	//"gosocial/internal/dbmongo/media_storage.go" // <--- correct import
@@ -53,56 +50,16 @@ func main() {
 	reflection.Register(grpcServer)
 
 	// Start gRPC server
-	go func() {
-		lis, err := net.Listen("tcp", ":"+app.Config.Server.FeedServicePort)
-		if err != nil {
-			log.Fatalf("Failed to listen on port %s: %v", app.Config.Server.FeedServicePort, err)
-		}
-		log.Printf("Feed Service (gRPC) running on port %s", app.Config.Server.FeedServicePort)
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("Failed to serve gRPC: %v", err)
-		}
-	}()
 
-	// --- MongoDB + GridFS Media Storage Initialization ---
-	mongoClient, err := dbmongo.NewMongoConnection(app.Config)
+	lis, err := net.Listen("tcp", ":"+app.Config.Server.FeedServicePort)
 	if err != nil {
-		log.Fatalf("Failed to connect to MongoDB for Media: %v", err)
+		log.Fatalf("Failed to listen on port %s: %v", app.Config.Server.FeedServicePort, err)
 	}
-	mediaStore := dbmongo.NewMediaStorage(mongoClient) // Use your GridFS wrapper
 
-	// Start HTTP Media server on :8080
 	go func() {
-		http.HandleFunc("/media/", func(w http.ResponseWriter, r *http.Request) {
-			// Extract fileID from URL path
-			fileID := strings.TrimPrefix(r.URL.Path, "/media/")
-			if fileID == "" {
-				http.Error(w, "File ID required", http.StatusBadRequest)
-				return
-			}
-
-			reader, mediaFile, err := mediaStore.DownloadFile(r.Context(), fileID)
-			if err != nil {
-				log.Printf("Failed to download file %s: %v", fileID, err)
-				http.Error(w, "File not found", http.StatusNotFound)
-				return
-			}
-
-			// Set proper headers
-			w.Header().Set("Content-Type", getContentType(mediaFile.Filename))
-			w.Header().Set("Content-Disposition", `inline; filename="`+mediaFile.Filename+`"`)
-			_, err = io.Copy(w, reader)
-			if err != nil {
-				log.Printf("Failed to stream file %s: %v", fileID, err)
-				http.Error(w, "Failed to serve file", http.StatusInternalServerError)
-				return
-			}
-			log.Printf("Served media file: %s (%s)", mediaFile.Filename, fileID)
-		})
-
-		log.Printf("Media HTTP Server running on port 8080")
-		if err := http.ListenAndServe(":8080", nil); err != nil {
-			log.Fatalf("Failed to serve Media HTTP: %v", err)
+		log.Printf("Feed Service running on port %s", app.Config.Server.FeedServicePort)
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
 		}
 	}()
 

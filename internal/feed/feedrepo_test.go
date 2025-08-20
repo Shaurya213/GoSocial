@@ -27,7 +27,7 @@ func setup(t *testing.T) {
 	t.Helper()
 
 	// --- MySQL ---
-	dsn := "root:root@tcp(localhost:3307)/gosocial_test?parseTime=true&multiStatements=true"
+	dsn := "gosocial_user:G0Social@123@tcp(localhost:3306)/gosocial_test?parseTime=true&multiStatements=true"
 	var err error
 	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		// Critical for tests: avoid GORM generating FK constraints that flip directions
