@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -56,6 +55,7 @@ type FirebaseConfig struct { // FirebaseConfig contains Firebase Cloud Messaging
 	Enabled             bool   `json:"enabled"`
 }
 
+
 type NotificationConfig struct {
 	Workers                int  `json:"workers"`                  // Number of worker goroutines
 	ChannelBufferSize      int  `json:"channel_buffer_size"`      // Channel buffer size
@@ -99,28 +99,30 @@ type MySQLConfig struct {
 }
 
 func LoadConfig() *Config {
-	err := godotenv.Load("cmd/.env")
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf(".env is not loading: %v", err)
+		log.Fatalf(".env is not laoding: %v", err)
 	}
 
-	cmd := exec.Command("bash", "-c", "curl ifconfig.me")
-	out, _ := cmd.Output()
-	ip := string(out)
-	//ip = "localhost"
+	/*
+		cmd := exec.Command("bash", "-c", "curl ifconfig.me")
+		out, _ := cmd.Output()
+		ip:= string(out)
+		//ip = "localhost"
 
-	//Setting new envs
-	//os.Setenv("MONGO_HOST", ip)
-	//os.Setenv("MYSQL_HOST", ip)
-	os.Setenv("MEDIA_BASE_URL", fmt.Sprintf("http://%s:%s/media", ip, os.Getenv("MEDIA_SERVER_PORT")))
+		//Setting new envs
+		//os.Setenv("MONGO_HOST", ip)
+		//os.Setenv("MYSQL_HOST", ip)
+		//os.Setenv("MEDIA_BASE_URL", fmt.Sprintf("http://%s:%s/media", ip, os.Getenv("MEDIA_SERVER_PORT")))
+	*/
 
 	return &Config{
 		Database: DatabaseConfig{
 			Port:         getEnv("MYSQL_PORT", "3306"),
 			Host:         getEnv("MYSQL_HOST", "localhost"),
-			Username:     getEnv("MYSQL_USERNAME", "gosocial_user"),
-			Password:     getEnv("MYSQL_PASSWORD", "G0Social@123"),
-			DatabaseName: getEnv("MYSQL_DATABASE", "gosocial_db"),
+			Username:     getEnv("MYSQL_USERNAME", "gosocial"),
+			Password:     getEnv("MYSQL_PASSWORD", "gosocial123"),
+			DatabaseName: getEnv("MYSQL_DATABASE", "gosocial"),
 			MaxOpenConns: 25,
 			MaxIdleConns: 5,
 		},
