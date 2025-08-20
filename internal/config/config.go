@@ -55,7 +55,6 @@ type FirebaseConfig struct { // FirebaseConfig contains Firebase Cloud Messaging
 	Enabled             bool   `json:"enabled"`
 }
 
-
 type NotificationConfig struct {
 	Workers                int  `json:"workers"`                  // Number of worker goroutines
 	ChannelBufferSize      int  `json:"channel_buffer_size"`      // Channel buffer size
