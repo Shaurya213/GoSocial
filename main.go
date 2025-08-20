@@ -1,82 +1,51 @@
 package main
 
 import (
-	"bufio"
-	"context"
-	"fmt"
-	"io"
+	"gosocial/api/v1/chat"
+	//"gosocial/internal/common"
+	"github.com/joho/godotenv"
+	"google.golang.org/grpc/reflection"
+	"gosocial/internal/dbmysql"
+	"gosocial/internal/di"
 	"log"
-	"mime"
-	"os"
-	"path/filepath"
-	"strings"
+	"net"
 
-	"gosocial/internal/config"
-	"gosocial/internal/dbmongo"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	// Setup
-	cfg := config.LoadConfig()
-	mc, err := dbmongo.NewMongoConnection(cfg)
+	err := godotenv.Load() // Your DB config
 	if err != nil {
-		log.Fatal("Connection failed:", err)
+		log.Fatalf("❌ .env file not found: %v", err)
 	}
-	defer mc.Close(context.Background())
 
-	storage := dbmongo.NewMediaStorage(mc)
+	// Wire-injected handler
+	db, err := dbmysql.NewMySQL()
+	if err != nil {
+		log.Fatalf("❌ Failed to connect DB: %v", err)
+	}
+	chatHandler := di.InitChatHandler(db)
 
-	// Simple input choice
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Upload or Download? (u/d): ")
-	choice, _ := reader.ReadString('\n')
-	choice = strings.TrimSpace(strings.ToLower(choice))
+	err = db.AutoMigrate(&dbmysql.Message{})
+	if err != nil {
+		log.Fatalf("❌ Failed to migrate DB: %v", err)
+	}
 
-	if choice == "u" {
-		// UPLOAD PATH
-		fmt.Print("Enter filename: ")
-		filename, _ := reader.ReadString('\n')
-		filename = strings.TrimSpace(filename)
+	// Set up gRPC
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("❌ Failed to listen: %v", err)
+	}
 
-		file, err := os.Open(filename)
-		if err != nil {
-			log.Fatal("File not found:", err)
-		}
-		defer file.Close()
+	grpcServer := grpc.NewServer()
 
-		stat, _ := file.Stat()
-		contentType := mime.TypeByExtension(filepath.Ext(filename))
+	// Register chat service
+	chat.RegisterChatServiceServer(grpcServer, chatHandler)
 
-		uploaded, err := storage.UploadFile(context.Background(), stat.Name(), contentType, "user123", file)
-		if err != nil {
-			log.Fatal("Upload failed:", err)
-		}
+	reflection.Register(grpcServer)
 
-		fmt.Printf("✅ Uploaded! ID: %s\n", uploaded.ID)
-
-	} else if choice == "d" {
-		// DOWNLOAD PATH
-		fmt.Print("Enter file ID: ")
-		fileID, _ := reader.ReadString('\n')
-		fileID = strings.TrimSpace(fileID)
-
-		reader_stream, fileInfo, err := storage.DownloadFile(context.Background(), fileID)
-		if err != nil {
-			log.Fatal("Download failed:", err)
-		}
-
-		// Save with ID as filename
-		outputFile := fmt.Sprintf("%s%s", fileID, filepath.Ext(fileInfo.Filename))
-		file, err := os.Create(outputFile)
-		if err != nil {
-			log.Fatal("Create failed:", err)
-		}
-		defer file.Close()
-
-		io.Copy(file, reader_stream)
-		fmt.Printf("✅ Downloaded as: %s\n", outputFile)
-
-	} else {
-		fmt.Println("Invalid choice")
+	log.Println("✅ gRPC Chat Server running on :50051")
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("❌ gRPC failed: %v", err)
 	}
 }

@@ -3,9 +3,12 @@ package dbmysql
 import "time"
 
 type Reaction struct {
-	ReactionID   uint64    `gorm:"primaryKey;autoIncrement" json:"reaction_id"`
-	UserID       uint64    `gorm:"index;not null" json:"user_id"`
-	ContentID    uint64    `gorm:"index;not null" json:"content_id"`
-	ReactionType string    `gorm:"type:enum('like','love');not null" json:"reaction_type"` // like,love are the reaction type
-	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`
+	ID        int64     `gorm:"primaryKey;autoIncrement;column:id"`
+	UserID    int64     `gorm:"column:user_id"`
+	ContentID int64     `gorm:"column:content_id"`
+	Type      string    `gorm:"column:type"` // like, love, laugh, etc.
+	CreatedAt time.Time `gorm:"column:created_at"`
+
+	user    User    `gorm:"foreignKey:UserID;references:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	content Content `gorm:"foreignKey:ContentID;references:ContentID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

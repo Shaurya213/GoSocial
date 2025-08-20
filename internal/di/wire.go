@@ -4,30 +4,39 @@
 package di
 
 import (
+	"fmt"
+
 	"github.com/google/wire"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gorm.io/gorm"
+
+	userpb "gosocial/api/v1/user"
+	"gosocial/internal/config"
+	"gosocial/internal/dbmongo"
+	"gosocial/internal/dbmysql"
+	"gosocial/internal/feed"
+
+	"context"
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
-	"context"
 	"google.golang.org/api/option"
 
-	"gosocial/internal/user"
 	"gosocial/internal/chat/handler"
 	"gosocial/internal/chat/repository"
 	"gosocial/internal/chat/service"
-	"gosocial/internal/config"
 	"gosocial/internal/common"
-	"gosocial/internal/dbmysql"
+	//"gosocial/internal/config"
 	"gosocial/internal/notif"
-
+	"gosocial/internal/user"
 	"log"
 )
 
-//USER
+// USER
 type UserApp struct {
-    Handler *user.Handler
-    DB      *gorm.DB
-    Config  *config.Config
+	Handler *user.Handler
+	DB      *gorm.DB
+	Config  *config.Config
 }
 
 var UserSet = wire.NewSet(
@@ -46,33 +55,98 @@ func InitializeUserHandler() (*UserApp, error) {
 	wire.Build(UserSet)
 	return nil, nil
 }
-// wire entry point
-// it needs *user.Handler, so we are returning it with along all the helper or provider set
-// giving or passing *gorm.DB do wire won't generate it
 
 // CHATS
 type ChatApp struct {
-    Handler *handler.ChatHandler
-    DB      *gorm.DB
-    Config  *config.Config
+	Handler *handler.ChatHandler
+	DB      *gorm.DB
+	Config  *config.Config
 }
 
 var ChatProviderSet = wire.NewSet(
-    config.LoadConfig,
-    dbmysql.NewMySQL,
-    repository.NewChatRepository,
-    service.NewChatService,
-    handler.NewChatHandler,
-    wire.Struct(new(ChatApp), "*"), // Wire creates ChatApp with all fields
+	config.LoadConfig,
+	dbmysql.NewMySQL,
+	repository.NewChatRepository,
+	service.NewChatService,
+	handler.NewChatHandler,
+	wire.Struct(new(ChatApp), "*"), // Wire creates ChatApp with all fields
 )
 
 // InitializeChatService now returns ChatApp with both handler and DB
 func InitializeChatService() (*ChatApp, func(), error) {
-    wire.Build(ChatProviderSet)
-    return nil, nil, nil
+	wire.Build(ChatProviderSet)
+	return nil, nil, nil
 }
 
-//NOTIFICATIONS
+// FEED SERVICE
+type FeedApp struct {
+	Handler      *feed.FeedHandlers
+	Service      *feed.FeedService
+	Config       *config.Config
+	DB           *gorm.DB
+	MediaStorage *dbmongo.MediaStorage // Add this
+}
+
+// Provider Functions
+
+// Provide FeedRepository
+func ProvideFeedRepository(db *gorm.DB, mediaStorage *dbmongo.MediaStorage) *feed.FeedRepository {
+	return feed.NewFeedRepository(db, mediaStorage)
+}
+
+// Provide User Service Client
+func ProvideUserServiceClient(cfg *config.Config) (userpb.UserServiceClient, func(), error) {
+	conn, err := grpc.Dial(
+		fmt.Sprintf("localhost:%s", cfg.Server.UserServicePort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	client := userpb.NewUserServiceClient(conn)
+	cleanup := func() {
+		conn.Close()
+	}
+
+	return client, cleanup, nil
+}
+
+// Provide FeedService
+func ProvideFeedService(
+	repo *feed.FeedRepository,
+	userClient userpb.UserServiceClient,
+) *feed.FeedService {
+	return feed.NewFeedService(repo, repo, repo, userClient)
+}
+
+// Provide FeedHandlers
+func ProvideFeedHandlers(feedService *feed.FeedService) *feed.FeedHandlers {
+	return &feed.FeedHandlers{
+		FeedSvc: feedService,
+	}
+}
+
+// Provider Set
+var FeedProviderSet = wire.NewSet(
+	config.LoadConfig,
+	dbmysql.NewMySQL,
+	dbmongo.NewMongoConnection,
+	dbmongo.NewMediaStorage,
+	ProvideFeedRepository,
+	ProvideUserServiceClient,
+	ProvideFeedService,
+	ProvideFeedHandlers,
+	wire.Struct(new(FeedApp), "*"),
+)
+
+// Wire Entry Point
+func InitializeFeedService() (*FeedApp, func(), error) {
+	wire.Build(FeedProviderSet)
+	return nil, nil, nil
+}
+
+// NOTIFICATIONS SERVICE
 type Application struct {
 	Config  *config.Config
 	DB      *gorm.DB
@@ -83,10 +157,10 @@ type Application struct {
 func InitializeApplication() (*Application, error) {
 	wire.Build(
 		config.LoadConfig,
+		//ProvideDatabaseConnection,
 		dbmysql.NewMySQL,
-		user.NewDeviceRepository,
 		dbmysql.NewNotificationRepository,
-		//wire.Bind(new(user.DeviceRepository), new(*user.DeviceRepo)),
+		user.NewDeviceRepository,
 		ProvideFirebaseApp,
 		ProvideFirebaseMessaging,
 		ProvideEmailService,
@@ -103,38 +177,39 @@ func ProvideNotificationServiceInterface(service *notif.NotificationService) not
 	return service
 }
 
-/*
-func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		cfg.Database.Username,
-		cfg.Database.Password,
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.DatabaseName,
-	)
-
-	log.Printf("Connecting to MySQL: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DatabaseName)
-
-	/*
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
-	}
-	dbmysql.SetDB(db)
-
-	db, err := dbmysql.kkkjj
-
-	if err := db.AutoMigrate(
-		&dbmysql.Notification{},
-		&dbmysql.Device{},
-	); err != nil {
-		log.Printf("Migration warning: %v", err)
-	}
-
-	return db, nil
-}
-*/
-
+// /*
+//
+//	func ProvideDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
+//		dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+//			cfg.Database.Username,
+//			cfg.Database.Password,
+//			cfg.Database.Host,
+//			cfg.Database.Port,
+//			cfg.Database.DatabaseName,
+//		)
+//
+//		log.Printf("Connecting to MySQL: %s:%s/%s", cfg.Database.Host, cfg.Database.Port, cfg.Database.DatabaseName)
+//
+//		/*
+//		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+//		if err != nil {
+//			return nil, fmt.Errorf("failed to connect to MySQL: %w", err)
+//		}
+//		dbmysql.SetDB(db)
+//
+//		db, err := dbmysql.kkkjj
+//
+//		if err := db.AutoMigrate(
+//			&dbmysql.Notification{},
+//			&dbmysql.Device{},
+//		); err != nil {
+//			log.Printf("Migration warning: %v", err)
+//		}
+//
+//		return db, nil
+//	}
+//
+// */
 func ProvideFirebaseApp(cfg *config.Config) (*firebase.App, error) {
 	if !cfg.Firebase.Enabled || cfg.Firebase.CredentialsFilePath == "" {
 		log.Println("Firebase disabled or credentials missing")
